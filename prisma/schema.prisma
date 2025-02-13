@@ -13,3 +13,36 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Customer {
+  id       String  @id @default(uuid())
+  username String?
+  email    String  @unique
+  password String
+}
+
+model Provider {
+  id       String  @id @default(uuid())
+  name     String  @unique
+  email    String? @unique
+  phone    String //may not be needed.
+  hasValet Boolean
+
+  employees Employee[]
+}
+
+enum Role {
+  Valet
+  Admin
+}
+
+model Employee {
+  id        String @id @default(uuid())
+  name      String
+  email     String @unique
+  passsword String
+  role      Role
+  phone     String
+
+  providerId String
+  provider   Provider @relation(fields: [providerId], references: [id])
+}

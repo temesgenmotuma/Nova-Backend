@@ -1,0 +1,244 @@
+openapi: 3.0.0
+info:
+  title: Customer Authentication API
+  description: API documentation for customer authentication in the Express app.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000/v1
+    description: Local development server
+
+tags:
+  - name: "Customer"
+    description: "Endpoints related to Customer"
+  - name: "Provider"
+    description: "Endpoints related to Provider"
+
+paths:
+  /auth/customers/signup:
+    post:
+      tags:
+        - Customer
+      summary: Register a new customer
+      description: Registers a new customer with an email, password, and optional username.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: "securepassword123"
+                username:
+                  type: string
+                  example: "user123"
+      responses:
+        "200":
+          description: Successfully registered customer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "12345"
+                  email:
+                    type: string
+                    example: "user@example.com"
+                  username:
+                    type: string
+                    example: "user123"
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        "400":
+          $ref: "#/components/responses/400"
+        "500":
+          $ref: "#/components/responses/500"
+
+  /auth/customers/login:
+    post:
+      tags:
+        - Customer
+      summary: Authenticate an existing customer
+      description: Logs in a customer by validating their email and password. Returns a JWT token upon success.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: "securepassword123"
+      responses:
+        "200":
+          description: Successfully logged in
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  message:
+                    type: string
+                    example: "Login successful."
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+         $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+  /auth/providers/register:
+    post:
+      tags:
+        - Provider
+      summary: Register a provider.
+      description: Registers a new provider and an admin for that provider. 
+      requestBody: 
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderRegisterRequest"
+      responses:
+        "200":
+          description: Successfully registered provider
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderRegisterResponse"   
+        "400": 
+            $ref: "#/components/responses/400"
+        "409": 
+            $ref: "#/components/responses/409"
+        "500":
+          $ref: "#/components/responses/500"         
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+    Provider:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+          example: 0912445578
+        email:
+          type: string
+        hasValet:
+          type: boolean
+    Employee:
+      type: object
+      properties:
+        name: 
+          type: string
+        phone:  
+          type: string
+          example: 0912445578
+        email:
+          type: string
+        password:
+          type: string
+          format: password
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email: 
+          type: string
+    ProviderRegisterRequest:
+      type: object
+      properties:
+        employee: 
+           $ref: "#components/schemas/Employee"
+        provider:
+          $ref: "#/components/schemas/Provider"
+    ProviderRegisterResponse:
+      type: object
+      properties:
+          token:
+            type: string
+            example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          employee:
+            type: object
+            properties:  
+              id:
+                type: string
+              name:
+                type: string
+          provider:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+          
+  responses:
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    "400":
+      description: Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    "404":
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    "409":
+      description: Resouce conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    "500":
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
