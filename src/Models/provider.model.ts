@@ -1,8 +1,10 @@
-const bcrypt = require("bcryptjs");
-const db = require("../Db/db");
+import bcrypt from "bcryptjs";
+import db from "../Db/db";
 
-module.exports = {
-  async getProvider(name) {
+import { Employee, Provider } from "Controllers/provider.controller";
+
+const providerModel = {
+  async getProvider(name:string) {
     return await db.provider.findUnique({
       where: {
         name: name.toLowerCase(),
@@ -10,7 +12,7 @@ module.exports = {
     });
   },
 
-  async create({ employee, provider }) {
+  async create( employee:Employee, provider:Provider ) {
     const password = employee.password;
     const hashedPassword = await bcrypt.hash(password, 10);
     const email = employee.email;
@@ -36,3 +38,5 @@ module.exports = {
     });
   },
 };
+
+export default providerModel;
