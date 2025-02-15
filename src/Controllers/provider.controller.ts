@@ -2,7 +2,7 @@ import joi from "joi";
 import { Request, Response } from "express";
 
 import providerModel from "../Models/provider.model";
-import generateToken from "../../utils/generateToken";
+import generateToken from "../utils/generateToken";
 
 const employeeSchema = joi.object({
   email: joi.string().email().required(),
@@ -48,7 +48,7 @@ enum Role {
   Valet,
 }
 
-export const create = async (req: Request, res: Response): Promise<void> => {
+export const createProvider = async (req: Request, res: Response): Promise<void> => {
   const { value, error } = createProviderSchema.validate(req.body);
   if (error) {
     res.status(400).json({ error: error.details[0].message });
@@ -88,3 +88,5 @@ export const create = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ error: "Error creating provider." });
   }
 };
+
+

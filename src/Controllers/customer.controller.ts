@@ -1,21 +1,18 @@
-import jwt from "jsonwebtoken";
-import {Request, Response} from "express";
+import { Request, Response } from "express";
 
 import customerModel from "../Models/customer.model";
-import generateTokenSendCookie from "../../utils/generateToken";
+import generateTokenSendCookie from "../utils/generateToken";
 import ModelError from "../Models/ModelError";
 
-
-export const signup = async (req: Request, res: Response):Promise<void> => {
-  
+export const signup = async (req: Request, res: Response): Promise<void> => {
   const { email, password, username } = req.body;
   try {
     const existingUser = await customerModel.getUser(email);
-    if (existingUser){
+    if (existingUser) {
       res.status(409).json({ message: "Customer already exits." });
       return;
     }
-    
+
     const customer = await customerModel.signup(email, password, username);
     res.json(customer);
   } catch (error) {

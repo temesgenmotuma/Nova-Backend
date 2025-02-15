@@ -5,6 +5,7 @@
     "target": "es2022",
     "outDir": "dist",
     "allowJs": true,
+    "sourceMap": true,
     "baseUrl": "src",
     "strict": true,
     "esModuleInterop": true,

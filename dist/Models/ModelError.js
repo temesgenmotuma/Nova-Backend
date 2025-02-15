@@ -1,16 +1,16 @@
-class ModelError extends Error{
-    constructor(message:string, statusCode:number){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class ModelError extends Error {
+    constructor(message, statusCode) {
         super(message);
         this.statusCode = statusCode;
         Error.captureStackTrace(this, this.constructor);
     }
-    statusCode:number
+    statusCode;
 }
-
-export default ModelError;
-
+exports.default = ModelError;
 /**
- * 
+ *
  * // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
@@ -32,4 +32,5 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
- */
+ */ 
+//# sourceMappingURL=ModelError.js.map

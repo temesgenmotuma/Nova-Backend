@@ -9,13 +9,15 @@ servers:
     description: Local development server
 
 tags:
-  - name: "Customer"
+  - name: "customer"
     description: "Endpoints related to Customer"
-  - name: "Provider"
+  - name: "provider"
     description: "Endpoints related to Provider"
+  - name: "lot"
+    description: "Endpoints related to lots"
 
 paths:
-  /auth/customers/signup:
+  /customers/auth/signup:
     post:
       tags:
         - Customer
@@ -64,7 +66,7 @@ paths:
         "500":
           $ref: "#/components/responses/500"
 
-  /auth/customers/login:
+  /customers/auth/login:
     post:
       tags:
         - Customer
@@ -105,7 +107,7 @@ paths:
          $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
-  /auth/providers/register:
+  /providers/auth/register:
     post:
       tags:
         - Provider
@@ -129,7 +131,52 @@ paths:
         "409": 
             $ref: "#/components/responses/409"
         "500":
-          $ref: "#/components/responses/500"         
+          $ref: "#/components/responses/500"    
+  /lots:
+    post:
+      tags:
+        - Lot
+      summary: Create a new parking lot
+      description: Creates a new parking lot for a provider.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LotCreateRequest"
+      responses:
+        "200":
+          description: Successfully created parking lot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "12345"
+                  name:
+                    type: string
+                    example: "Parking Lot 1"
+                  capacity:
+                    type: integer
+                    example: 100
+                  location: 
+                    type: object
+                    properties:
+                      latitude:
+                        type: number
+                        format: float
+                        example: 37.7749
+                      longitude:
+                        type: number
+                        format: float
+                        example: -122.4194
+
+        "400":
+          $ref: "#/components/responses/400"
+        "500":
+          $ref: "#/components/responses/500"  
 components:
   securitySchemes:
     BearerAuth:
@@ -180,30 +227,49 @@ components:
       type: object
       properties:
         employee: 
-           $ref: "#components/schemas/Employee"
+           $ref: "#/components/schemas/Employee"
         provider:
           $ref: "#/components/schemas/Provider"
     ProviderRegisterResponse:
       type: object
       properties:
-          token:
-            type: string
-            example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-          employee:
-            type: object
-            properties:  
-              id:
-                type: string
-              name:
-                type: string
-          provider:
-            type: object
-            properties:
-              id:
-                type: string
-              name:
-                type: string
-          
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        employee:
+          type: object
+          properties:  
+            id:
+              type: string
+            name:
+              type: string
+        provider:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+    LotCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Parking Lot 1"
+        capacity:
+          type: integer
+          example: 100
+        location:
+          type: object
+          properties:
+            latitude:
+              type: number
+              format: float
+              example: 37.7749
+            longitude:
+              type: number
+              format: float
+              example: -122.4194
   responses:
     "401":
       description: Unauthorized

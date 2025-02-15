@@ -2,7 +2,7 @@ import db from "../Db/db";
 import bcrypt from "bcryptjs";
 import { Customer } from "@prisma/client";
 
-import ModelError from "./ModelError"; 
+import ModelError from "./ModelError.js"; 
 
 interface UserData {
   email: string;
