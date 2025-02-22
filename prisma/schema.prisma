@@ -10,11 +10,13 @@ datasource db {
 }
 
 model Customer {
-  id       String                               @id @default(uuid())
+  id       String                                @id @default(uuid())
   username String?
-  email    String                               @unique
-  password String
-  location Unsupported("geometry(Point, 4326)")?  //if cutomer doesn't give location permission
+  email    String                                @unique
+  // password String
+  location Unsupported("geometry(Point, 4326)")? //if cutomer doesn't give location permission
+
+  supabaseId String @unique
 }
 
 model Provider {
@@ -24,8 +26,12 @@ model Provider {
   phone    String //may not be needed.
   hasValet Boolean
 
+  supabaseId String @unique
+
   employees Employee[]
   lots      Lot[]
+  invitations Invitation[]
+
 }
 
 enum Role {
@@ -37,25 +43,62 @@ model Employee {
   id        String   @id @default(uuid())
   name      String
   email     String   @unique
-  passsword String
   role      Role
   phone     String
   createdAt DateTime @default(now())
 
   providerId String
   provider   Provider @relation(fields: [providerId], references: [id])
+
+  supabaseId String @unique
+}
+
+model Invitation {
+  id        String   @id @default(uuid())
+  email     String   
+  role      Role
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  //might remove later
+  lotId String?
+  lot   Lot?    @relation(fields: [lotId], references: [id])
+
+  providerId String
+  provider   Provider @relation(fields: [providerId], references: [id])
 }
 
 model Lot {
-  id       String @id @default(uuid())
+  id       String    @id @default(uuid())
   name     String
   capacity Int
   location Unsupported("GEOGRAPHY(POINT, 4326)")
   address  String?
-
-  providerId String
-  provider   Provider @relation(fields: [providerId], references: [id])
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  providerId String
+  provider   Provider @relation(fields: [providerId], references: [id]) 
+
+  Spot      Spot[]
+  invitations Invitation[]
+}
+
+model Spot {
+  id        String     @id @default(uuid())
+  name      String
+  floor     Int
+  price     Decimal?
+  status    SpotStatus @default(Available)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  lotId String
+  lot   Lot    @relation(fields: [lotId], references: [id])
+}
+
+enum  SpotStatus {
+  Available
+  Reserved
+  Occupied
 }

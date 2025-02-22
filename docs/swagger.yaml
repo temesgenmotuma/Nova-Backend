@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
-  title: Customer Authentication API
-  description: API documentation for customer authentication in the Express app.
+  title: Nova API
+  description: API documentation for Nova Parking System.
   version: 1.0.0
 
 servers:
@@ -15,12 +15,14 @@ tags:
     description: "Endpoints related to Provider"
   - name: "lot"
     description: "Endpoints related to lots"
+  - name: "spot"
+    description: "Endpoints related to spots"
 
 paths:
-  /customers/auth/signup:
+  /customer/auth/signup:
     post:
       tags:
-        - Customer
+        - customer
       summary: Register a new customer
       description: Registers a new customer with an email, password, and optional username.
       requestBody:
@@ -42,7 +44,7 @@ paths:
                   type: string
                   example: "user123"
       responses:
-        "200":
+        "201":
           description: Successfully registered customer
           content:
             application/json:
@@ -66,10 +68,10 @@ paths:
         "500":
           $ref: "#/components/responses/500"
 
-  /customers/auth/login:
+  /customer/auth/login:
     post:
       tags:
-        - Customer
+        - customer
       summary: Authenticate an existing customer
       description: Logs in a customer by validating their email and password. Returns a JWT token upon success.
       requestBody:
@@ -107,10 +109,10 @@ paths:
          $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
-  /providers/auth/register:
+  /provider/auth/register:
     post:
       tags:
-        - Provider
+        - provider
       summary: Register a provider.
       description: Registers a new provider and an admin for that provider. 
       requestBody: 
@@ -120,7 +122,7 @@ paths:
             schema:
               $ref: "#/components/schemas/ProviderRegisterRequest"
       responses:
-        "200":
+        "201":
           description: Successfully registered provider
           content:
             application/json:
@@ -131,13 +133,99 @@ paths:
         "409": 
             $ref: "#/components/responses/409"
         "500":
-          $ref: "#/components/responses/500"    
+          $ref: "#/components/responses/500"
+  /provider/auth/login:
+    post:
+      tags:
+        - provider
+      summary: Authenticate a provider
+      description: Logs in a provider by validating their email and password. Returns a JWT token upon success.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example:  example@gmail.com
+                password: 
+                  type: string
+                  format: password
+                  example: "securepassword123"
+      responses:
+        "200":
+          description: Successfully logged in
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  message:
+                    type: string
+                    example: "Login successful."
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+  /provider/auth/invite:
+    post:
+      tags:
+        - provider
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+      summary: Invite a provider employee
+      description: Invites a new employee to a provider. 
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example:
+                role:
+                  enum: [admin, valet]
+                  example: "admin"
+      responses:
+        "200":
+          description: Successfully invited employee
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Employee invited successfully."
+        "400":
+          $ref: "#/components/responses/400"
+        "409":
+          $ref: "#/components/responses/409"
+        "500":
+          $ref: "#/components/responses/500"     
   /lots:
     post:
       tags:
-        - Lot
+        - lot
+      security:
+        - BearerAuth: []    
       summary: Create a new parking lot
       description: Creates a new parking lot for a provider.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
       requestBody:
         required: true
         content:
@@ -145,7 +233,7 @@ paths:
             schema:
               $ref: "#/components/schemas/LotCreateRequest"
       responses:
-        "200":
+        "201":
           description: Successfully created parking lot
           content:
             application/json:
@@ -172,11 +260,88 @@ paths:
                         type: number
                         format: float
                         example: -122.4194
-
         "400":
           $ref: "#/components/responses/400"
         "500":
           $ref: "#/components/responses/500"  
+  /spots:
+    post:
+      tags:
+        - spot
+      security:
+        - BearerAuth: []
+      summary: Create new parking spot/s
+      description: Creates new parking spot/s for a parking lot.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "P1"
+                number:
+                  type: integer
+                  example: 1
+                floor:
+                  type: integer
+                  example: 1
+                startingNumber:
+                  type: string
+                  nullable: true
+                  example: 1
+                lotId:
+                  type: string
+                  example: "12345"
+      responses:
+        "201":
+          description: Successfully created parking spot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  spot:
+                    $ref: "#/components/schemas/Spot"
+        "400":
+          $ref: "#/components/responses/400"
+        "500":
+          $ref: "#/components/responses/500"
+  /lots/{lotId}/spots:
+    get:
+      tags:
+        - lot
+      security:
+        - BearerAuth: []
+      summary: Get all spots for a parking lot
+      description: Returns all parking spots for a parking lot.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: lotId
+          description: The ID of the parking lot
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successfully retrieved parking spots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Spot"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
 components:
   securitySchemes:
     BearerAuth:
@@ -270,6 +435,63 @@ components:
               type: number
               format: float
               example: -122.4194
+        spot:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "P1"
+            numberOfSpots:
+              type: integer
+              example: 1
+            floor:
+              type: integer
+              example: 1
+            startingNumber:
+              type: string
+              nullable: true
+              example: 1
+    Spot:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+            example: "12345"
+          name:
+            type: string
+            example: "P1"
+          floor:
+            type: integer
+            example: 1
+          lotId:
+            type: string
+            example: "12345"
+          number:
+            type: integer
+            example: 1
+          status:
+            type: string
+            enum: [available, occupied, reserved]
+            example: "available"
+          createAt:
+            type: string
+            format: date-time
+            example: "2021-08-01T12:00:00Z"
+          updatedAt:
+            type: string
+            format: date-time
+            example: "2021-08-01T12:00:00Z"
+  parameters:
+    XClientType:
+      name: x-client-type
+      in: header
+      description: The type of client making the request
+      schema:
+        type: string
+        enum: [provider, customer]
+      required: true
   responses:
     "401":
       description: Unauthorized

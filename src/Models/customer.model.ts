@@ -6,12 +6,13 @@ import ModelError from "./ModelError.js";
 
 interface UserData {
   email: string;
-  password: string;
+  // password: string;
   username?: string; // Make username optional
+  supabaseId: string;
 }
 
 const customerModel = {
-  async getUser(email: string) {
+  async getCustomerByEmail(email: string) {
     return await db.customer.findUnique({
       where: {
         email,
@@ -19,12 +20,21 @@ const customerModel = {
     });
   },
 
-  async signup(email: string, password: string, username: string) {
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+  async getCustomerBySupabaseId(supabaseId: string) {
+    return await db.customer.findUnique({
+      where: {
+        supabaseId,
+      }
+  });
+  },
+
+  async signup(email: string, password: string, username: string, supabaseUserId: string){
+    // const salt = await bcrypt.genSalt(10);
+    // const hashedPassword = await bcrypt.hash(password, salt);
     const data: UserData = {
       email,
-      password: hashedPassword,
+      // password: hashedPassword,
+      supabaseId: supabaseUserId,
     };
     if (username) {
       data.username = username;
@@ -49,8 +59,8 @@ const customerModel = {
     if (customer === null) {
       throw new ModelError("Customer with that email doesn't exist.", 404);
     }
-    const match = await bcrypt.compare(password, customer.password);
-    if (!match) throw new ModelError("Incorrect Password Passed", 401);
+    // const match = await bcrypt.compare(password, customer.password);
+    // if (!match) throw new ModelError("Incorrect Password Passed", 401);
     return customer;
   },
 };

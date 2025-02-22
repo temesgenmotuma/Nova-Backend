@@ -3,11 +3,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.create = void 0;
+exports.createProvider = void 0;
 const joi_1 = __importDefault(require("joi"));
 const provider_model_1 = __importDefault(require("../Models/provider.model"));
 const generateToken_1 = __importDefault(require("../utils/generateToken"));
-// import { providerJwtPayload } from "../utils/generateToken";
 const employeeSchema = joi_1.default.object({
     email: joi_1.default.string().email().required(),
     name: joi_1.default.string().required(),
@@ -30,7 +29,7 @@ var Role;
     Role[Role["Admin"] = 0] = "Admin";
     Role[Role["Valet"] = 1] = "Valet";
 })(Role || (Role = {}));
-const create = async (req, res) => {
+const createProvider = async (req, res) => {
     const { value, error } = createProviderSchema.validate(req.body);
     if (error) {
         res.status(400).json({ error: error.details[0].message });
@@ -68,5 +67,5 @@ const create = async (req, res) => {
         res.status(500).json({ error: "Error creating provider." });
     }
 };
-exports.create = create;
+exports.createProvider = createProvider;
 //# sourceMappingURL=provider.controller.js.map
