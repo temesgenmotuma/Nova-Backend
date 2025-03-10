@@ -8,6 +8,7 @@ const spot_controller_1 = require("../Controllers/spot.controller");
 const supabaseAuthMiddleware_1 = __importDefault(require("../Middleware/supabaseAuthMiddleware"));
 const router = express_1.default.Router();
 router.post("/", supabaseAuthMiddleware_1.default, spot_controller_1.createSpot);
-// router.get ("/", protect, getSpots);
+router.get("/:id", supabaseAuthMiddleware_1.default, spot_controller_1.getSpot);
+router.patch("/:id", supabaseAuthMiddleware_1.default, spot_controller_1.updateSpot); //Remember to protect this routes
 exports.default = router;
 //# sourceMappingURL=spot.js.map

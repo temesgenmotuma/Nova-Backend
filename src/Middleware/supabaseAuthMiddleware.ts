@@ -26,6 +26,7 @@ export default async function protect(
 ) {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
+    console.error("Unauthorized: No authorization header provided.");
     res.status(401).json({ message: "Unauthorized: No authorization header provided." });
     return;
   }

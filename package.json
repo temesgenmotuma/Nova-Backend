@@ -24,7 +24,8 @@
     "mailgun.js": "^11.1.0",
     "mailtrap": "^3.4.0",
     "swagger-ui-express": "^5.0.1",
-    "yaml": "^2.7.0"
+    "yaml": "^2.7.0",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

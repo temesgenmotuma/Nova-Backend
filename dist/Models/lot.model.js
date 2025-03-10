@@ -6,8 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = __importDefault(require("../Db/db"));
 const client_1 = require("@prisma/client");
 const lotModel = {
-    //create a lot
-    //create the spots associated with the lot
+    //create a lot and the spots associated with the lot
     async createLot(lot, providerId) {
         const { name: lotName, capacity, location: { latitude, longitude }, spot: { name: spotName, numberOfSpots, floor, startingNumber }, } = lot;
         const result = await db_1.default.$transaction(async (tx) => {
@@ -40,7 +39,8 @@ const lotModel = {
         });
         return result;
     },
-    async getLotSpots(provId, lotId) {
+    async getSpotsByLot(provId, lotId) {
+        //is the providerId filter redundant?
         return await db_1.default.spot.findMany({
             where: {
                 lotId: lotId,

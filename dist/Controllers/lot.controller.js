@@ -52,7 +52,7 @@ const getSpotsByLot = async (req, res) => {
     }
     try {
         //get spots of a the current provider and a particular lot.
-        const spots = await lot_model_1.default.getLotSpots(provId, lotId);
+        const spots = await lot_model_1.default.getSpotsByLot(provId, lotId);
         res.status(200).json({ spots });
     }
     catch (error) {

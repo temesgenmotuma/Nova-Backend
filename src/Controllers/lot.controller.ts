@@ -50,10 +50,11 @@ export const getSpotsByLot = async (req: Request, res: Response) => {
   }
   try {
     //get spots of a the current provider and a particular lot.
-    const spots = await lotModel.getLotSpots(provId, lotId);
+    const spots = await lotModel.getSpotsByLot(provId, lotId);
     res.status(200).json({ spots });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error fetching spots" });
   }
 };
+

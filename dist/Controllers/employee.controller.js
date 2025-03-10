@@ -3,28 +3,23 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addEmployee = exports.login = exports.createProvider = void 0;
+exports.sendResetEmail = exports.getUser = exports.createEmployee = exports.inviteEmployee = exports.login = exports.createProvider = void 0;
 const joi_1 = __importDefault(require("joi"));
 const supabase_1 = __importDefault(require("../services/supabase/supabase"));
 const employee_model_1 = __importDefault(require("../Models/employee.model"));
 const signUp_1 = __importDefault(require("../services/supabase/auth/signUp"));
 const signIn_1 = __importDefault(require("../services/supabase/auth/signIn"));
 const sendEmail_1 = __importDefault(require("../services/email/sendEmail"));
+const resetPassord_1 = __importDefault(require("../services/supabase/auth/resetPassord"));
 const employeeSchema = joi_1.default.object({
     email: joi_1.default.string().email().required(),
     name: joi_1.default.string().required(),
     password: joi_1.default.string().required().min(8),
-    phone: joi_1.default
-        .string()
-        .pattern(/^09\d{8}$/)
-        .required(),
+    phone: joi_1.default.string().pattern(/^09\d{8}$/).required(),
     role: joi_1.default.string().valid("admin", "valet").optional(),
 });
 const providerSchema = joi_1.default.object({
-    phone: joi_1.default
-        .string()
-        .pattern(/^09\d{8}$/)
-        .required(),
+    phone: joi_1.default.string().pattern(/^09\d{8}$/).required(),
     name: joi_1.default.string().required().lowercase(),
     email: joi_1.default.string().email().optional(),
     hasValet: joi_1.default.boolean().required(),
@@ -40,6 +35,16 @@ const employeeLoginSchema = joi_1.default.object({
 const inviteEmployeeSchema = joi_1.default.object({
     email: joi_1.default.string().email().required(),
     role: joi_1.default.string().valid("Admin", "Valet").required(),
+});
+const createEmployeeSchema = joi_1.default.object({
+    name: joi_1.default.string().required(),
+    phone: joi_1.default.string().pattern(/^09\d{8}$/).required(),
+    password: joi_1.default.string().min(8).required(),
+    confirmPassword: joi_1.default.ref("password"),
+});
+const resetPasswordSchema = joi_1.default.object({
+    email: joi_1.default.string().email().required(),
+    // password: joi.string().min(8).required(),
 });
 var Role;
 (function (Role) {
@@ -96,10 +101,8 @@ const login = async (req, res) => {
         //check if employee exists
         const employeeExists = await employee_model_1.default.getEmployeeByEmail(value.email);
         if (!employeeExists || !employeeExists.provider) {
-            res
-                .status(404)
-                .json({
-                error: "Employee not found or not associated with a provider.",
+            res.status(404).json({
+                error: "Employee not found.",
             });
             return;
         }
@@ -115,38 +118,104 @@ const login = async (req, res) => {
     }
     catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Error   in.", error });
+        res.status(500).json({ message: "Error logging in.", error });
     }
 };
 exports.login = login;
-const addEmployee = async (req, res) => {
+const inviteEmployee = async (req, res) => {
     const { error, value } = inviteEmployeeSchema.validate(req.body);
     if (error) {
         res.status(400).json({ error: error.details[0].message });
         return;
     }
-    const providerId = req?.user?.providerId;
+    const providerId = req.user?.providerId;
     try {
         const { email, role } = value;
         //dont allow adding employee who already works for another provider
-        //need to pass on email and role to the frontend and get it back in another controller
         //db wide check or just provider check?
         const employee = await employee_model_1.default.getEmployeeByEmail(email);
         if (employee) {
-            res.status(409).json({ message: "Employee already exists." });
+            let message = "Employee already exists.";
+            if (employee.providerId === providerId) {
+                message = "Employee already works for this provider.";
+            }
+            res.status(409).json({ message });
             return;
         }
-        //create an invitation record for the email
-        //do i need to check if an inivitation already exists?
-        const invitation = await employee_model_1.default.createInvitation(email, role, providerId);
-        //send invitation email to the email addr
+        //do i need to check if an unexpired inivitation already exists?
+        await employee_model_1.default.createInvitation(email, role, providerId);
+        //TODO: add correct email template
         await (0, sendEmail_1.default)(email, "");
-        res.json({ message: "Invitation sent." });
+        res.json({ message: "Invitation email sent." });
     }
     catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error inviting employee. ", error: error });
     }
 };
-exports.addEmployee = addEmployee;
+exports.inviteEmployee = inviteEmployee;
+const createEmployee = async (req, res) => {
+    const { error, value } = createEmployeeSchema.validate(req.body);
+    if (error) {
+        res.status(400).json({ error: error.details[0].message });
+        return;
+    }
+    const token = req.query.token;
+    try {
+        const invitation = await employee_model_1.default.getInvitation(token);
+        if (!invitation) {
+            res.status(404).json({ message: "Invitation not found or expired" });
+            return;
+        }
+        const employeeExists = await employee_model_1.default.getEmployeeByEmail(invitation.email);
+        if (employeeExists) {
+            res.status(409).json({ message: "Employee already exists." });
+            return;
+        }
+        //supabase signup
+        const user = await (0, signUp_1.default)(invitation.email, value.password);
+        const empSupabaseId = user.id;
+        const employee = await employee_model_1.default.createEmployee(value, invitation, empSupabaseId);
+        res.status(201).json(employee);
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error creating employee." });
+    }
+};
+exports.createEmployee = createEmployee;
+const getUser = async (req, res) => {
+    // TODO: 
+    try {
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json(error);
+    }
+};
+exports.getUser = getUser;
+const sendResetEmail = async (req, res) => {
+    const { error, value } = resetPasswordSchema.validate(req.body);
+    if (error) {
+        res.status(400).json({ error: error.details[0].message });
+        return;
+    }
+    try {
+        const { email } = value;
+        const user = await employee_model_1.default.getEmployeeByEmail(email);
+        if (!user) {
+            res.status(404).json({ message: "User not found." });
+            return;
+        }
+        const { data, error } = await (0, resetPassord_1.default)(email);
+        if (error)
+            throw error;
+        res.json({ message: "Reset email sent." });
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json(error);
+    }
+};
+exports.sendResetEmail = sendResetEmail;
 //# sourceMappingURL=employee.controller.js.map

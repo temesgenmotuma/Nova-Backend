@@ -17,8 +17,11 @@ tags:
     description: "Endpoints related to lots"
   - name: "spot"
     description: "Endpoints related to spots"
+  - name: "vehicle"
+    description: "Endpoints related to vehicles"
 
 paths:
+# Customer Endpoints
   /customer/auth/signup:
     post:
       tags:
@@ -67,7 +70,6 @@ paths:
           $ref: "#/components/responses/400"
         "500":
           $ref: "#/components/responses/500"
-
   /customer/auth/login:
     post:
       tags:
@@ -106,9 +108,12 @@ paths:
         "401":
           $ref: "#/components/responses/401"
         "404":
-         $ref: "#/components/responses/404"
+          $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
+
+  
+# Provider Endpoints  
   /provider/auth/register:
     post:
       tags:
@@ -194,9 +199,9 @@ paths:
               properties:
                 email:
                   type: string
-                  format: email
-                  example:
+                  example: "user@example.com"  
                 role:
+                  type: string
                   enum: [admin, valet]
                   example: "admin"
       responses:
@@ -215,7 +220,116 @@ paths:
         "409":
           $ref: "#/components/responses/409"
         "500":
-          $ref: "#/components/responses/500"     
+          $ref: "#/components/responses/500"  
+  /provider/auth/employees/:
+    post:
+      tags:
+        - provider
+      parameters:
+        - in: query
+          name: token
+          required: true
+          schema:
+            type: string 
+      summary: Sign up for an invited employee
+      description: To sign up for an invited employee, the employee must provide their name, email, and password. 
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                  format: phone
+                password:
+                  type: string
+                  format: password
+                confirmPassword:
+                  type: string
+                  format: password
+      responses:
+        "201":
+          description: Successfully registered employee
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        "400":
+          $ref: "#/components/responses/400"
+        "404":
+          $ref: "#/components/responses/404"
+        "409": 
+          $ref: "#/components/responses/409"
+        "500":
+          $ref: "#/components/responses/500"
+  /provider/auth/employees/send-reset:
+    post:
+      tags:
+        - provider
+      summary: Send password reset email
+      description: Sends a password reset email to the employee's email address.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: "abc@gmail.com"
+      responses:
+        "200":
+          description: Successfully sent password reset email
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password reset email sent successfully."
+        "400":
+          $ref: "#/components/responses/400"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+  /provider/{provId}/lots:
+    get:
+      tags:
+        - lot
+      security:
+        - BearerAuth: []
+      summary: Get all parking lots for a provider
+      description: Returns all parking lots for a provider.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: provId
+          description: The ID of the provider
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successfully retrieved parking lots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lot"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+
+# Lot Endpoints 
   /lots:
     post:
       tags:
@@ -264,6 +378,37 @@ paths:
           $ref: "#/components/responses/400"
         "500":
           $ref: "#/components/responses/500"  
+  /lots/{lotId}/spots:
+    get:
+      tags:
+        - lot
+      security:
+        - BearerAuth: []
+      summary: Get all spots for a parking lot
+      description: Returns all parking spots for a parking lot.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: lotId
+          description: The ID of the parking lot
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successfully retrieved parking spots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Spot"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+
+# Spot Endpoints 
   /spots:
     post:
       tags:
@@ -313,35 +458,213 @@ paths:
           $ref: "#/components/responses/400"
         "500":
           $ref: "#/components/responses/500"
-  /lots/{lotId}/spots:
+  /spots/{spotId}:
     get:
       tags:
-        - lot
+        - spot
       security:
         - BearerAuth: []
-      summary: Get all spots for a parking lot
-      description: Returns all parking spots for a parking lot.
+      summary: Get a parking spot
+      description: Returns a parking spot by ID.
       parameters:
         - $ref: "#/components/parameters/XClientType"
         - in: path
-          name: lotId
-          description: The ID of the parking lot
+          name: spotId
+          description: The ID of the parking spot
           required: true
           schema:
             type: string
       responses:
         "200":
-          description: Successfully retrieved parking spots
+          description: Successfully retrieved parking spot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Spot"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+    patch:
+      tags:
+        - spot
+      security:
+        - BearerAuth: []
+      summary: Update a parking spot
+      description: Updates a parking spot by ID.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: spotId
+          description: The ID of the parking spot
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "P1"
+                floor:
+                  type: integer
+                  example: 1
+                # status:
+                #   type: string
+                #   enum: [available, occupied, reserved]
+                #   example: "occupied"
+      responses:
+        "200":
+          description: Successfully updated parking spot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Spot"
+        "400":
+          $ref: "#/components/responses/400"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+
+# Vehicle Endpoints
+  /vehicles:
+    get:
+      tags:
+        - vehicle
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: customerId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      summary: Get all vehicles
+      description: Returns all vehicles for a customer.
+      responses:
+        "200":
+          description: Successfully retrieved vehicles
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Spot"
+                  $ref: "#/components/schemas/Vehicle"
         "404":
           $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
+    post:
+      tags:
+        - vehicle
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: customerId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      summary: Create a new vehicle
+      description: Creates a new vehicle for a customer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                make:
+                  type: string
+                  example: "Toyota"
+                model:
+                  type: string
+                  example: "Camry"
+                color:
+                  type: string
+                  example: "Black"
+                licensePlateNumber:
+                  type: string
+                  example: "12345"
+      responses:
+        "201":
+          description: Successfully created vehicle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vehicle"
+        "400":
+          $ref: "#/components/responses/400"
+        "500":
+          $ref: "#/components/responses/500"
+  /vehicles/{vehicleId}:
+    get:
+      tags:
+        - vehicle
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: vehicleId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      summary: Get a specific vehicle
+      description: Fetches a specific vehicle for a customer.
+      responses:
+        "200":
+          description: Successfully retrieved the vehicle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vehicle"
+        "400":
+          $ref: "#/components/responses/400"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+    delete:
+      tags:
+        - vehicle
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: vehicleId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      summary: Delete a vehicle
+      description: Delete a vehicle for a customer.
+      responses:
+        "200":
+          description: Successfully deleted the vehicle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vehicle"
+        "400":
+          $ref: "#/components/responses/400"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+
 components:
   securitySchemes:
     BearerAuth:
@@ -451,6 +774,24 @@ components:
               type: string
               nullable: true
               example: 1
+    Lot:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        capacity:
+          type: integer
+        location:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     Spot:
       type: array
       items:
@@ -483,6 +824,25 @@ components:
             type: string
             format: date-time
             example: "2021-08-01T12:00:00Z"
+    Vehicle:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        make:
+          type: string
+        model:
+          type: string
+        color:
+          type: string
+        licensePlateNumber:
+          type: string
+        deletedAt:
+          type: string
+          format: date-time
+    # VehicleResponse:
+
   parameters:
     XClientType:
       name: x-client-type

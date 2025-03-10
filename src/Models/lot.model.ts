@@ -23,9 +23,7 @@ interface createLot {
 }
 
 const lotModel = {
-  //create a lot
-  //create the spots associated with the lot
-
+  //create a lot and the spots associated with the lot
   async createLot(lot: createLot, providerId: string) {
     const {
       name: lotName,
@@ -35,7 +33,7 @@ const lotModel = {
     } = lot;
 
     const result = await db.$transaction(async (tx) => {
-      const lot = await tx.$queryRaw<{ id: string }[] >`
+      const lot = await tx.$queryRaw<{ id: string }[]>`
         INSERT INTO "Lot" (id, name, "providerId", location, capacity, "updatedAt") 
         VALUES (
           gen_random_uuid(), 
@@ -69,7 +67,8 @@ const lotModel = {
     return result;
   },
 
-  async getLotSpots(provId: string, lotId: string) {
+  async getSpotsByLot(provId: string, lotId: string) {
+    //is the providerId filter redundant?
     return await db.spot.findMany({
       where: {
         lotId: lotId,

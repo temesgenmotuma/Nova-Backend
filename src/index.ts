@@ -9,9 +9,11 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 import customerRoutes from "./Routes/customer";
-import providerRoutes from "./Routes/employee";
+import employeeRoutes from "./Routes/employee";
 import lotRoutes from "./Routes/lot";
 import spotRoutes from "./Routes/spot";
+import providerRoutes from "./Routes/provider";
+import vehicleRoutes from "./Routes/vehicle";
 
 import swaggerUi from "swagger-ui-express";
 const swaggerDocument = yaml.parse(
@@ -23,9 +25,11 @@ app.use(express.json());
 app.use(cors());
 
 app.use("/v1/customer", customerRoutes);
+app.use("/v1/employee", employeeRoutes);
 app.use("/v1/provider", providerRoutes);
 app.use("/v1/lots", lotRoutes);
 app.use("/v1/spots", spotRoutes);
+app.use("/v1/vehicles", vehicleRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

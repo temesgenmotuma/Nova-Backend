@@ -10,6 +10,7 @@ const employee_model_1 = __importDefault(require("../Models/employee.model"));
 async function protect(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
+        console.error("Unauthorized: No authorization header provided.");
         res.status(401).json({ message: "Unauthorized: No authorization header provided." });
         return;
     }

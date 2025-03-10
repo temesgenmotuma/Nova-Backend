@@ -10,13 +10,14 @@ datasource db {
 }
 
 model Customer {
-  id       String                                @id @default(uuid())
-  username String?
-  email    String                                @unique
+  id         String                                @id @default(uuid())
+  username   String?
+  email      String                                @unique
   // password String
-  location Unsupported("geometry(Point, 4326)")? //if cutomer doesn't give location permission
+  location   Unsupported("geometry(Point, 4326)")? //if cutomer doesn't give location permission
+  supabaseId String                                @unique
 
-  supabaseId String @unique
+  vehicles Vehicle[]
 }
 
 model Provider {
@@ -28,10 +29,9 @@ model Provider {
 
   supabaseId String @unique
 
-  employees Employee[]
-  lots      Lot[]
+  employees   Employee[]
+  lots        Lot[]
   invitations Invitation[]
-
 }
 
 enum Role {
@@ -55,10 +55,11 @@ model Employee {
 
 model Invitation {
   id        String   @id @default(uuid())
-  email     String   
+  email     String
   role      Role
-  createdAt DateTime @default(now())
+  token     String
   expiresAt DateTime
+  createdAt DateTime @default(now())
 
   //might remove later
   lotId String?
@@ -69,18 +70,18 @@ model Invitation {
 }
 
 model Lot {
-  id       String    @id @default(uuid())
-  name     String
-  capacity Int
-  location Unsupported("GEOGRAPHY(POINT, 4326)")
-  address  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String                                @id @default(uuid())
+  name      String
+  capacity  Int
+  location  Unsupported("GEOGRAPHY(POINT, 4326)")
+  address   String?
+  createdAt DateTime                              @default(now())
+  updatedAt DateTime                              @updatedAt
 
   providerId String
-  provider   Provider @relation(fields: [providerId], references: [id]) 
+  provider   Provider @relation(fields: [providerId], references: [id])
 
-  Spot      Spot[]
+  Spot        Spot[]
   invitations Invitation[]
 }
 
@@ -95,10 +96,49 @@ model Spot {
 
   lotId String
   lot   Lot    @relation(fields: [lotId], references: [id])
+
+  reservations Reservation[]
 }
 
-enum  SpotStatus {
+enum SpotStatus {
   Available
   Reserved
   Occupied
+}
+
+model Vehicle {
+  id                 String @id @default(uuid())
+  licensePlateNumber String @unique
+  make               String
+  model              String
+  color              String
+
+  deletedAt  DateTime?
+  customerId String
+  customer   Customer  @relation(fields: [customerId], references: [id])
+
+  reservations Reservation[]
+}
+
+model Reservation {
+  id          String            @id @default(uuid())
+  startTime   DateTime
+  endTime     DateTime
+  arrivalTime DateTime?
+  status      ReservationStatus
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  cancelledAt DateTime?
+
+  spotId String
+  spot   Spot   @relation(fields: [spotId], references: [id])
+
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+}
+
+enum ReservationStatus {
+  COMPLETE
+  CANCELLED
+  ACTIVE
 }
