@@ -25,7 +25,7 @@ app.use(express.json());
 app.use(cors());
 
 app.use("/v1/customer", customerRoutes);
-app.use("/v1/employee", employeeRoutes);
+app.use("/v1/auth/employees", employeeRoutes);
 app.use("/v1/provider", providerRoutes);
 app.use("/v1/lots", lotRoutes);
 app.use("/v1/spots", spotRoutes);

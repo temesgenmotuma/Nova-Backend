@@ -21,8 +21,9 @@ const updateSpotSchema = joi_1.default.object({
 const idSchema = joi_1.default.string().uuid();
 const reserveQuerySchema = zod_1.z.object({
     vehicleId: zod_1.z.string().uuid(),
-    startTime: zod_1.z.date(),
-    endTime: zod_1.z.date(),
+    startTime: zod_1.z.coerce.date(),
+    endTime: zod_1.z.coerce.date(),
+    lotId: zod_1.z.string().uuid(),
 });
 const createSpot = async (req, res) => {
     const { value, error } = createSpotSchema.validate(req.body);
@@ -85,12 +86,12 @@ exports.updateSpot = updateSpot;
 const checkAvailability = async (req, res) => {
     const { lotId } = req.params;
     try {
-        const foundSpot = await spot_model_1.default.checkAvailability(lotId);
-        if (!foundSpot) {
-            res.status(404).json({ message: "No spots available" });
-            return;
+        /* const foundSpot = await spotModel.checkAvailability(lotId);
+        if(!foundSpot){
+          res.status(404).json({message: "No spots available"});
+          return;
         }
-        res.json({ message: "Spot available", spot: foundSpot.id });
+        res.json({message: "Spot available", spot: foundSpot.id}) */ ;
     }
     catch (error) {
         console.error(error);
@@ -100,13 +101,28 @@ const checkAvailability = async (req, res) => {
 exports.checkAvailability = checkAvailability;
 const reserve = async (req, res) => {
     const customerId = req?.user?.id;
+    const result = reserveQuerySchema.safeParse(req.body);
+    if (!result.success) {
+        res.status(400).json({ message: "Invalid request", error: result.error });
+        return;
+    }
     try {
-        //check if customer has a registered vehicle
-        //if not, prompt user to register a vehicle 
-        //check spot availability
+        /** THESE 2 ARE DONE ON THE FRONTEND
+        //check if customer has a vehicle
+        //if not, prompt user to register a vehicle
+        */
+        //check spot availability during the time the customer wants to reserve
         //If a spot is available somehow choose a parking spot
+        const { lotId, startTime, endTime } = result.data;
+        const freeSpot = await spot_model_1.default.checkAvailability(lotId, startTime, endTime);
+        if (!freeSpot) {
+            res.status(404).json({ message: "No spots available during that time." });
+            return;
+        }
         //lock the spot
         //wait until the user makes a payment.
+        const reservation = await spot_model_1.default.reserve(freeSpot.id, result.data);
+        res.status(201).json(reservation);
     }
     catch (error) {
         console.error(error);

@@ -23,7 +23,7 @@ app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.de
 app.use(express_1.default.json());
 app.use((0, cors_1.default)());
 app.use("/v1/customer", customer_1.default);
-app.use("/v1/employee", employee_1.default);
+app.use("/v1/auth/employees", employee_1.default);
 app.use("/v1/provider", provider_1.default);
 app.use("/v1/lots", lot_1.default);
 app.use("/v1/spots", spot_1.default);

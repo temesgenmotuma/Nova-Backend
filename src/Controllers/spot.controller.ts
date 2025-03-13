@@ -3,6 +3,7 @@ import joi from "joi";
 import {z} from "zod";
 
 import spotModel from "../Models/spot.model";
+import vehicleModel from "Models/vehicle.model";
 
 const createSpotSchema = joi.object({
   name: joi.string().optional(),
@@ -15,16 +16,18 @@ const createSpotSchema = joi.object({
 const updateSpotSchema = joi.object({
   name: joi.string().optional().empty("").default(null),
   floor: joi.number().integer().optional().empty("").default(null),
-
-})
+});
 
 const idSchema = joi.string().uuid();
 
 const reserveQuerySchema = z.object({
   vehicleId: z.string().uuid(),
-  startTime: z.date(),
-  endTime: z.date(),
+  startTime: z.coerce.date(),
+  endTime: z.coerce.date(),
+  lotId: z.string().uuid(),
 });
+
+export type ReserveQueryType = z.infer<typeof reserveQuerySchema>;
 
 export const createSpot = async (req: Request, res: Response) => {
   const { value, error } = createSpotSchema.validate(req.body);
@@ -93,12 +96,12 @@ export const updateSpot = async (req: Request, res: Response) => {
 export const  checkAvailability = async (req: Request, res: Response) => {
   const {lotId} = req.params;
   try {
-    const foundSpot = await spotModel.checkAvailability(lotId);
+    /* const foundSpot = await spotModel.checkAvailability(lotId);
     if(!foundSpot){
       res.status(404).json({message: "No spots available"});
       return;
     }
-    res.json({message: "Spot available", spot: foundSpot.id});
+    res.json({message: "Spot available", spot: foundSpot.id}) */;
   } catch (error) {
     console.error(error);
     res.status(500).json({message: "Error fetching availability information.", error: (error as Error).message})
@@ -106,14 +109,33 @@ export const  checkAvailability = async (req: Request, res: Response) => {
 };
 
 export const reserve = async (req: Request, res: Response) => {
-  const customerId = req?.user?.id;
+  const customerId = req?.user?.id as string;
+  const result = reserveQuerySchema.safeParse(req.body);
+  if(!result.success){
+    res.status(400).json({message: "Invalid request", error: result.error});
+    return;
+  } 
   try {
-    //check if customer has a registered vehicle
+    /** THESE 2 ARE DONE ON THE FRONTEND 
+    //check if customer has a vehicle
     //if not, prompt user to register a vehicle 
-    //check spot availability
+    */
+    
+
+    //check spot availability during the time the customer wants to reserve
     //If a spot is available somehow choose a parking spot
+    const {lotId, startTime, endTime} = result.data;
+    const freeSpot = await spotModel.checkAvailability(lotId, startTime, endTime);
+    if(!freeSpot){
+      res.status(404).json({message: "Sorry. This lot is fully booked for the requested time."});
+      return;
+    }
+    
     //lock the spot
     //wait until the user makes a payment.
+    const reservation = await spotModel.reserve(freeSpot.id, result.data)
+    res.status(201).json(reservation);
+    
   } catch (error) {
     console.error(error);
     res.status(500).json({message: "Error booking spot.", error: (error as Error).message});

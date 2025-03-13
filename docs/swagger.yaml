@@ -86,11 +86,11 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: user@example.com
+                  example: custone@abc.com
                 password:
                   type: string
                   format: password
-                  example: "securepassword123"
+                  example: "custone12345"
       responses:
         "200":
           description: Successfully logged in
@@ -113,8 +113,8 @@ paths:
           $ref: "#/components/responses/500"
 
   
-# Provider Endpoints  
-  /provider/auth/register:
+# Employee Endpoints  
+  /auth/employees/register:
     post:
       tags:
         - provider
@@ -139,7 +139,7 @@ paths:
             $ref: "#/components/responses/409"
         "500":
           $ref: "#/components/responses/500"
-  /provider/auth/login:
+  /auth/employees/login:
     post:
       tags:
         - provider
@@ -155,11 +155,11 @@ paths:
                 email:
                   type: string
                   format: email
-                  example:  example@gmail.com
+                  example:  empone@gmail.com
                 password: 
                   type: string
                   format: password
-                  example: "securepassword123"
+                  example: "empone12345"
       responses:
         "200":
           description: Successfully logged in
@@ -180,7 +180,7 @@ paths:
           $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
-  /provider/auth/invite:
+  /auth/employees/invite:
     post:
       tags:
         - provider
@@ -221,7 +221,7 @@ paths:
           $ref: "#/components/responses/409"
         "500":
           $ref: "#/components/responses/500"  
-  /provider/auth/employees/:
+  /auth/employees/:
     post:
       tags:
         - provider
@@ -266,7 +266,7 @@ paths:
           $ref: "#/components/responses/409"
         "500":
           $ref: "#/components/responses/500"
-  /provider/auth/employees/send-reset:
+  /auth/employees/employees/send-reset:
     post:
       tags:
         - provider
@@ -299,6 +299,8 @@ paths:
           $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
+
+ #Provider Endpoints 
   /provider/{provId}/lots:
     get:
       tags:
@@ -523,6 +525,51 @@ paths:
           description: Successfully updated parking spot
           content:
             application/json:
+              schema:
+                $ref: "#/components/schemas/Spot"
+        "400":
+          $ref: "#/components/responses/400"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+  /spots/reservation:
+    post:
+      tags:
+        - spot
+      security:
+        - BearerAuth: []
+      summary: Reserve a parking spot
+      description: Reserves a parking spot by ID.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vehicleId:
+                  type: string
+                  format: uuid
+                startTime:
+                  type: string
+                  format: date-time
+                  example: "2021-08-01T12:00:00Z"
+                endTime:
+                  type: string
+                  format: date-time
+                  example: "2021-08-01T13:00:00Z"
+                lotId:
+                  type: string
+                  format: uuid
+      responses:
+        "201":
+          description: Successfully reserved parking spot
+          content:
+            application/json:
+              #change this
               schema:
                 $ref: "#/components/schemas/Spot"
         "400":

@@ -11,10 +11,10 @@ import {
 
 
 const router = express.Router();
-router.post("/auth/register", createProvider);
-router.post("/auth/login", login);
-router.post("/auth/invite", protect, inviteEmployee);
-router.post("/auth/employees", createEmployee);
-router.post("/auth/employees/send-reset", sendResetEmail);
+router.post("/register", createProvider);
+router.post("/login", login);
+router.post("/invite", protect, inviteEmployee);
+router.post("/send-reset", sendResetEmail);
+router.post("", createEmployee);
 
 export default router;

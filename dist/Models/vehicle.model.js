@@ -21,19 +21,22 @@ const vehicleModel = {
                 deletedAt: null,
                 customerId: customerId,
             },
+            omit: {
+                deletedAt: true,
+                customerId: true,
+            }
         });
     },
-    async createVehicle(customerId, vehcicle) {
-        const vehicle = await db_1.default.vehicle.create({
+    async createVehicle(customerId, vehicle) {
+        return await db_1.default.vehicle.create({
             data: {
-                make: vehcicle.make,
-                model: vehcicle.model,
-                color: vehcicle.color,
-                licensePlateNumber: vehcicle.licensePlateNumber,
+                make: vehicle.make,
+                model: vehicle.model,
+                color: vehicle.color,
+                licensePlateNumber: vehicle.licensePlateNumber,
                 customerId: customerId,
             },
         });
-        return vehicle;
     },
     async deleteVehicle(vehicleId) {
         return await db_1.default.vehicle.update({

@@ -86,7 +86,7 @@ const deleteVehicle = async (req, res) => {
     }
     try {
         const vehicle = await vehicle_model_1.default.getVehicle(vehicleId, customerId);
-        if (!vehicle || vehicle.deletedAt !== null) {
+        if (!vehicle) {
             res.status(404).json({ message: "Vehicle not found or is deleted." });
             return;
         }
