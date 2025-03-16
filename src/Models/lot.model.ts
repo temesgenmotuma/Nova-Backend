@@ -1,6 +1,8 @@
 import db from "../Db/db";
 import { SpotStatus } from "@prisma/client";
 
+import { nearbyLotsQueryType } from "../Controllers/lot.controller";
+
 interface createLot {
   name: string;
   capacity: number;
@@ -78,6 +80,21 @@ const lotModel = {
       },
     });
   },
+
+  async getNearbylots(area: nearbyLotsQueryType) {
+    const {location: { longitude, latitude }, radius} = area;
+
+    return await db.$queryRaw`
+      SELECT name, ST_AsText(location) AS location 
+      FROM "Lot" 
+      WHERE ST_DWithin(
+        location,
+        ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}),4326),
+        ${radius}
+      )  
+    `;
+  },
 };
+
 
 export default lotModel;

@@ -3,8 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getSpotsByLot = exports.createLot = exports.createLotSchema = void 0;
+exports.getNearbylots = exports.getSpotsByLot = exports.createLot = exports.createLotSchema = void 0;
 const joi_1 = __importDefault(require("joi"));
+const zod_1 = require("zod");
 const lot_model_1 = __importDefault(require("../Models/lot.model"));
 const spotSchema = joi_1.default.object({
     numberOfSpots: joi_1.default.number().integer().empty("").default(0),
@@ -25,6 +26,13 @@ exports.createLotSchema = joi_1.default.object({
     //   woreda: joi.string(),
     // }),
     spot: joi_1.default.alternatives().try(spotSchema).default({}).optional(),
+});
+const nearbyLotsQuerySchema = zod_1.z.object({
+    location: zod_1.z.object({
+        latitude: zod_1.z.coerce.number(),
+        longitude: zod_1.z.coerce.number(),
+    }),
+    radius: zod_1.z.coerce.number(),
 });
 const createLot = async (req, res) => {
     const providerId = req.user?.providerId;
@@ -61,4 +69,20 @@ const getSpotsByLot = async (req, res) => {
     }
 };
 exports.getSpotsByLot = getSpotsByLot;
+const getNearbylots = async (req, res) => {
+    const value = nearbyLotsQuerySchema.safeParse(req.body);
+    if (!value.success) {
+        res.status(400).json({ message: "Invalid request", error: value.error });
+        return;
+    }
+    try {
+        const nearbySpots = await lot_model_1.default.getNearbylots(value.data);
+        res.json(nearbySpots);
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error fetching nearby parking lots.", error: error.message });
+    }
+};
+exports.getNearbylots = getNearbylots;
 //# sourceMappingURL=lot.controller.js.map

@@ -83,6 +83,8 @@ model Lot {
 
   Spot        Spot[]
   invitations Invitation[]
+
+  @@index([location], name: "location_idx", type: Gist )
 }
 
 model Spot {

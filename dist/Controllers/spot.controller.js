@@ -116,7 +116,7 @@ const reserve = async (req, res) => {
         const { lotId, startTime, endTime } = result.data;
         const freeSpot = await spot_model_1.default.checkAvailability(lotId, startTime, endTime);
         if (!freeSpot) {
-            res.status(404).json({ message: "No spots available during that time." });
+            res.status(404).json({ message: "Sorry. This lot is fully booked for the requested time." });
             return;
         }
         //lock the spot

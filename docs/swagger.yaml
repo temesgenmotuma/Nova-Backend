@@ -118,8 +118,8 @@ paths:
     post:
       tags:
         - provider
-      summary: Register a provider.
-      description: Registers a new provider and an admin for that provider. 
+      summary: Register a provider and automatically logs the employee in.
+      description: Registers a new provider and an admin for that provider. The employee is automatically logged in. 
       requestBody: 
         required: true
         content:
@@ -409,7 +409,27 @@ paths:
           $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
-
+  /lots/nearby:
+    get:
+      tags:
+        - lot
+      security:
+        - BearerAuth: []
+      summary: Get all lots within some given distance from a location.
+      description: Returns all nearby parking lots.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+      responses:
+        "200":
+          description: Successfully retrieved nearby parking lots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lot"
+        "500":
+          $ref: "#/components/responses/500"
 # Spot Endpoints 
   /spots:
     post:
@@ -810,7 +830,7 @@ components:
           properties:
             name:
               type: string
-              example: "P1"
+              example: "P"
             numberOfSpots:
               type: integer
               example: 1

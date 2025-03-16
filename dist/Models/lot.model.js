@@ -16,7 +16,7 @@ const lotModel = {
           gen_random_uuid(), 
           ${lotName}, 
           ${providerId}, 
-          ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326), 
+          ST_MAKEPOINT(${longitude}, ${latitude}), 
           ${capacity}, 
           NOW()
         ) 
@@ -49,6 +49,18 @@ const lotModel = {
                 },
             },
         });
+    },
+    async getNearbylots(area) {
+        const { location: { longitude, latitude }, radius } = area;
+        return await db_1.default.$queryRaw `
+      SELECT name, ST_AsText(location) AS location 
+      FROM "Lot" 
+      WHERE ST_DWithin(
+        location,
+        ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}),4326),
+        ${radius}
+      )  
+    `;
     },
 };
 exports.default = lotModel;
