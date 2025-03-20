@@ -14,6 +14,7 @@ import lotRoutes from "./Routes/lot";
 import spotRoutes from "./Routes/spot";
 import providerRoutes from "./Routes/provider";
 import vehicleRoutes from "./Routes/vehicle";
+import reservationRoutes from "./Routes/reservation";
 
 import swaggerUi from "swagger-ui-express";
 const swaggerDocument = yaml.parse(
@@ -30,6 +31,7 @@ app.use("/v1/provider", providerRoutes);
 app.use("/v1/lots", lotRoutes);
 app.use("/v1/spots", spotRoutes);
 app.use("/v1/vehicles", vehicleRoutes);
+app.use("/v1/reservations", reservationRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

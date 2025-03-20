@@ -553,7 +553,9 @@ paths:
           $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
-  /spots/reservation:
+  
+# Reservation Endpoints  
+  /reservations:
     post:
       tags:
         - spot
@@ -598,6 +600,36 @@ paths:
           $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
+  /reservations/{id}:  
+    delete:
+      tags:
+        - spot
+      security:
+        - BearerAuth: []
+      summary: Cancel a reservation
+      description: Cancels a reservation by ID.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: id
+          description: The ID of the reservation
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Successfully canceled reservation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Spot"
+        "400":
+          $ref: "#/components/responses/400"
+        "404":  
+          $ref: "#/components/responses/404"  
+        "500":
+          $ref: "#/components/responses/500" 
 
 # Vehicle Endpoints
   /vehicles:
@@ -920,6 +952,15 @@ components:
         enum: [provider, customer]
       required: true
   responses:
+    "204":
+      description: No content
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
     "401":
       description: Unauthorized
       content:

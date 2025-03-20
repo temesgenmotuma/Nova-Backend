@@ -10,6 +10,7 @@ const router = express_1.default.Router();
 router.post("/", supabaseAuthMiddleware_1.default, spot_controller_1.createSpot);
 router.get("/:id", supabaseAuthMiddleware_1.default, spot_controller_1.getSpot);
 router.patch("/:id", supabaseAuthMiddleware_1.default, spot_controller_1.updateSpot); //Remember to protect this routes
-router.post("/reservation", supabaseAuthMiddleware_1.default, spot_controller_1.reserve);
+router.post("/reservations", supabaseAuthMiddleware_1.default, spot_controller_1.reserve);
+router.delete("/reservations/:id", supabaseAuthMiddleware_1.default, spot_controller_1.cancelReservation);
 exports.default = router;
 //# sourceMappingURL=spot.js.map

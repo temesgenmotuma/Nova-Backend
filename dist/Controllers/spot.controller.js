@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.reserve = exports.checkAvailability = exports.updateSpot = exports.getSpot = exports.createSpot = void 0;
+exports.cancelReservation = exports.reserve = exports.checkAvailability = exports.updateSpot = exports.getSpot = exports.createSpot = void 0;
 const joi_1 = __importDefault(require("joi"));
 const zod_1 = require("zod");
 const spot_model_1 = __importDefault(require("../Models/spot.model"));
@@ -19,6 +19,7 @@ const updateSpotSchema = joi_1.default.object({
     floor: joi_1.default.number().integer().optional().empty("").default(null),
 });
 const idSchema = joi_1.default.string().uuid();
+const futureIdSchema = zod_1.z.string().uuid();
 const reserveQuerySchema = zod_1.z.object({
     vehicleId: zod_1.z.string().uuid(),
     startTime: zod_1.z.coerce.date(),
@@ -130,4 +131,25 @@ const reserve = async (req, res) => {
     }
 };
 exports.reserve = reserve;
+const cancelReservation = async (req, res) => {
+    const { id } = req.params;
+    const result = futureIdSchema.safeParse(id);
+    if (!result.success) {
+        res.status(400).json({ message: "Invalid request", error: result.error });
+        return;
+    }
+    try {
+        const reservation = await spot_model_1.default.cancelReservation(id);
+        if (!reservation) {
+            res.status(404).json({ message: "Reservation not found." });
+            return;
+        }
+        res.status(204).json({ message: "Reservation canceled." });
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error canceling reservation.", error: error.message });
+    }
+};
+exports.cancelReservation = cancelReservation;
 //# sourceMappingURL=spot.controller.js.map

@@ -13,6 +13,7 @@ const spotSchema = joi_1.default.object({
     name: joi_1.default.string().default("P").empty(""),
     floor: joi_1.default.number().integer().empty("").optional(),
 });
+//numberOfSpots < capacity
 exports.createLotSchema = joi_1.default.object({
     name: joi_1.default.string().required(),
     capacity: joi_1.default.number().required(),
@@ -70,7 +71,7 @@ const getSpotsByLot = async (req, res) => {
 };
 exports.getSpotsByLot = getSpotsByLot;
 const getNearbylots = async (req, res) => {
-    const value = nearbyLotsQuerySchema.safeParse(req.body);
+    const value = nearbyLotsQuerySchema.safeParse(req.query);
     if (!value.success) {
         res.status(400).json({ message: "Invalid request", error: value.error });
         return;

@@ -8,8 +8,9 @@ const spotSchema = joi.object({
     startingNumber: joi.number().integer().default(1).empty(""),
     name: joi.string().default("P").empty(""),
     floor: joi.number().integer().empty("").optional(),
-})
+});
 
+//numberOfSpots < capacity
 export const createLotSchema = joi.object({
   name: joi.string().required(),
   capacity: joi.number().required(),

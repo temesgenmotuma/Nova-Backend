@@ -16,7 +16,7 @@ const lotModel = {
           gen_random_uuid(), 
           ${lotName}, 
           ${providerId}, 
-          ST_MAKEPOINT(${longitude}, ${latitude}), 
+          ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326), 
           ${capacity}, 
           NOW()
         ) 

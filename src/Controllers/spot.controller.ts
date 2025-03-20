@@ -20,14 +20,7 @@ const updateSpotSchema = joi.object({
 
 const idSchema = joi.string().uuid();
 
-const reserveQuerySchema = z.object({
-  vehicleId: z.string().uuid(),
-  startTime: z.coerce.date(),
-  endTime: z.coerce.date(),
-  lotId: z.string().uuid(),
-});
-
-export type ReserveQueryType = z.infer<typeof reserveQuerySchema>;
+const futureIdSchema = z.string().uuid();
 
 export const createSpot = async (req: Request, res: Response) => {
   const { value, error } = createSpotSchema.validate(req.body);
@@ -108,39 +101,9 @@ export const  checkAvailability = async (req: Request, res: Response) => {
   }
 };
 
-export const reserve = async (req: Request, res: Response) => {
-  const customerId = req?.user?.id as string;
-  const result = reserveQuerySchema.safeParse(req.body);
-  if(!result.success){
-    res.status(400).json({message: "Invalid request", error: result.error});
-    return;
-  } 
-  try {
-    /** THESE 2 ARE DONE ON THE FRONTEND 
-    //check if customer has a vehicle
-    //if not, prompt user to register a vehicle 
-    */
-    
 
-    //check spot availability during the time the customer wants to reserve
-    //If a spot is available somehow choose a parking spot
-    const {lotId, startTime, endTime} = result.data;
-    const freeSpot = await spotModel.checkAvailability(lotId, startTime, endTime);
-    if(!freeSpot){
-      res.status(404).json({message: "Sorry. This lot is fully booked for the requested time."});
-      return;
-    }
-    
-    //lock the spot
-    //wait until the user makes a payment.
-    const reservation = await spotModel.reserve(freeSpot.id, result.data)
-    res.status(201).json(reservation);
-    
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({message: "Error booking spot.", error: (error as Error).message});
-  }  
-};
+
+
 
 
 

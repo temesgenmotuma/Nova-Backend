@@ -9,5 +9,6 @@ const supabaseAuthMiddleware_1 = __importDefault(require("../Middleware/supabase
 const router = express_1.default.Router();
 router.post("/", supabaseAuthMiddleware_1.default, lot_controller_1.createLot);
 router.get("/:lotId/spots", supabaseAuthMiddleware_1.default, lot_controller_1.getSpotsByLot);
+router.get("/nearby", supabaseAuthMiddleware_1.default, lot_controller_1.getNearbylots);
 exports.default = router;
 //# sourceMappingURL=lot.js.map

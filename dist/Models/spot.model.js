@@ -4,8 +4,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = __importDefault(require("../Db/db"));
+const ModelError_1 = __importDefault(require("./ModelError"));
 const spotModel = {
     async createSpot(name, number, floor, startingNumber, lotId) {
+        const lot = await db_1.default.lot.findUnique({
+            where: {
+                id: lotId,
+            },
+            select: {
+                capacity: true,
+            },
+        });
+        if (lot && (lot?.capacity < startingNumber + number - 1)) {
+            throw new ModelError_1.default("Capacity Exceeded", 400);
+        }
         return await db_1.default.$queryRaw `
       INSERT INTO "Spot" (id, name, floor, status, "lotId", "createdAt", "updatedAt")
         SELECT 
@@ -49,6 +61,7 @@ const spotModel = {
                     {
                         reservations: {
                             every: {
+                                status: "ACTIVE", // test this out.
                                 OR: [
                                     {
                                         startTime: {
@@ -108,6 +121,23 @@ const spotModel = {
         });
         return result;
     },
+    async cancelReservation(reservationId) {
+        //free the spot 
+        //mark the reservation as cancelled 
+        return await db_1.default.reservation.update({
+            where: {
+                id: reservationId,
+            },
+            data: {
+                status: "CANCELLED",
+                spot: {
+                    update: {
+                        status: "Available",
+                    },
+                },
+            },
+        });
+    }
 };
 exports.default = spotModel;
 /*  */
