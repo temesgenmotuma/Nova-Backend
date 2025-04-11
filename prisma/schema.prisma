@@ -47,6 +47,9 @@ model Employee {
   phone     String
   createdAt DateTime @default(now())
 
+  lotId String?
+  lot   Lot?    @relation(fields: [lotId], references: [id])
+
   providerId String
   provider   Provider @relation(fields: [providerId], references: [id])
 
@@ -81,25 +84,34 @@ model Lot {
   providerId String
   provider   Provider @relation(fields: [providerId], references: [id])
 
-  Spot        Spot[]
+  spots       Spot[]
   invitations Invitation[]
+  employees   Employee[]
 
-  @@index([location], name: "location_idx", type: Gist )
+  @@index([location], name: "location_idx", type: Gist)
 }
 
 model Spot {
-  id        String     @id @default(uuid())
-  name      String
-  floor     Int
-  price     Decimal?
-  status    SpotStatus @default(Available)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id             String         @id @default(uuid())
+  name           String
+  floor          Int
+  price          Decimal?
+  status         SpotStatus     @default(Available)
+  occupationType OccupationType?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   lotId String
   lot   Lot    @relation(fields: [lotId], references: [id])
 
+  entryTickets EntryTicket[]
+
   reservations Reservation[]
+}
+
+enum OccupationType {
+  RESERVATION
+  NONRESERVATION
 }
 
 enum SpotStatus {
@@ -119,6 +131,7 @@ model Vehicle {
   customerId String
   customer   Customer  @relation(fields: [customerId], references: [id])
 
+  entryTickets EntryTicket?
   reservations Reservation[]
 }
 
@@ -143,4 +156,27 @@ enum ReservationStatus {
   COMPLETE
   CANCELLED
   ACTIVE
+}
+
+model EntryTicket {
+  id          String            @id @default(uuid())
+  entryTime   DateTime?
+  exitTime    DateTime
+  status      EntryTicketStatus @default(ACTIVE)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  cancelledAt DateTime?
+  isPaid      Boolean           @default(false)
+
+  spotId String
+  spot   Spot   @relation(fields: [spotId], references: [id])
+
+  vehicleId String  @unique
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+}
+
+enum EntryTicketStatus {
+  ACTIVE
+  CANCELLED
+  COMPLETED
 }

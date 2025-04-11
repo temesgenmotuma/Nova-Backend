@@ -45,13 +45,14 @@ async function protect(req, res, next) {
             req.user = {
                 id: user?.id,
                 providerId: user?.provider.id,
+                lotId: user?.lot?.id,
                 role: user?.role,
                 email: user?.email,
             };
         }
         else {
             console.error("Invalid client-type header provided.");
-            res.status(401).json({ message: "No client-type header provided." });
+            res.status(401).json({ message: "Invalid or no client-type header provided." });
             return;
         }
         next();

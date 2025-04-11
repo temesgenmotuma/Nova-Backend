@@ -38,6 +38,11 @@ const employeeModel = {
             id: true,
           },
         },
+        lot:{
+          select:{
+            id: true,
+          }
+        }
       },
     });
   },

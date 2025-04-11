@@ -5,6 +5,9 @@ type employeePayload = {
     provider: {
         id: string;
     };
+    lot: {
+        id: string;
+    } | null;
     id: string;
     email: string;
     role: $Enums.Role;
@@ -22,6 +25,7 @@ type payloadType = employeePayload | customerPayload | null;
 type reqUser = {
     id: string;
     providerId?: string;
+    lotId?: string;
     role?: $Enums.Role;
     email?: string;
 

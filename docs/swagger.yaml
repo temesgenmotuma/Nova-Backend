@@ -764,6 +764,54 @@ paths:
         "500":
           $ref: "#/components/responses/500"
 
+ # Entry/Exit Endpoints
+  /vehicles/entry:
+    post:
+      tags:
+        - vehicle
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+      summary: Record vehicle entry
+      description: Records the entry of a vehicle into a parking lot.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                licensePlateNumber:
+                  type: string
+                  example: 1AAB45323
+                entryTime:
+                  type: string
+                  format: date-time
+                  example: "2021-08-01T12:00:00Z"
+      responses:
+        "200":
+          description: Successfully recorded vehicle entry
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticketId:
+                    type: string
+                    format: uuid
+                  PlateNumber:
+                    type: string
+                  parkingSpot:
+                    type: string
+        "400":
+          $ref: "#/components/responses/400"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+
+
 components:
   securitySchemes:
     BearerAuth:

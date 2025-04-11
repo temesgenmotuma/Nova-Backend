@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "EntryTicket" ALTER COLUMN "status" SET DEFAULT 'ACTIVE',
+ALTER COLUMN "isPaid" SET DEFAULT false;

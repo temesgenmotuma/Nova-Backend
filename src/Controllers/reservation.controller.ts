@@ -11,7 +11,6 @@ const reserveQuerySchema = z.object({
 
 export type ReserveQueryType = z.infer<typeof reserveQuerySchema>;
 
-
 const futureIdSchema = z.string().uuid();
 
 export const reserve = async (req: Request, res: Response) => {
