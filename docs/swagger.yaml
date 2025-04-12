@@ -782,7 +782,7 @@ paths:
             schema:
               type: object
               properties:
-                licensePlateNumber:
+                licensePlate:
                   type: string
                   example: 1AAB45323
                 entryTime:

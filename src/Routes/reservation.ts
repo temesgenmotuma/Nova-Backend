@@ -4,7 +4,7 @@ import protect from "../Middleware/supabaseAuthMiddleware";
 
 const router = Router();
 
-router.post("/reservations", protect, reserve);
-router.delete("/reservations/:id", protect, cancelReservation);
+router.post("", protect, reserve);
+router.delete("/:id", protect, cancelReservation);
 
 export default router;

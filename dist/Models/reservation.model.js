@@ -9,7 +9,7 @@ const reservationModel = {
         //check if the spot is available during the time the customer wants to reserve
         const fromDateTime = new Date(fromTime).toISOString();
         const toDateTime = new Date(toTime).toISOString();
-        return await db_1.default.spot.findFirst({
+        const spot = await db_1.default.spot.findFirst({
             where: {
                 lotId: lotId,
                 OR: [
@@ -40,6 +40,13 @@ const reservationModel = {
                 ],
             },
         });
+        return spot;
+        //it is occupied now and occupationType is reservation - reservation can still be made 
+        //for non-reservation customers priority is to find a spot that is free now
+        //if the spot is occupied and occupationType is nonreservation - no reservation can be made
+        /* if(spot?.status !== "Available" && spot?.occupationType === "NONRESERVATION"){
+          return null;
+        } */
     },
     async reserve(spotId, reservation) {
         const result = await db_1.default.$transaction(async (tx) => {
@@ -63,6 +70,7 @@ const reservationModel = {
                 },
                 data: {
                     status: "Reserved",
+                    occupationType: "RESERVATION",
                     reservations: {
                         create: {
                             startTime: reservation.startTime,
