@@ -92,14 +92,14 @@ model Lot {
 }
 
 model Spot {
-  id             String         @id @default(uuid())
+  id             String          @id @default(uuid())
   name           String
   floor          Int
   price          Decimal?
-  status         SpotStatus     @default(Available)
+  status         SpotStatus      @default(Available)
   occupationType OccupationType?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   lotId String
   lot   Lot    @relation(fields: [lotId], references: [id])
@@ -128,8 +128,8 @@ model Vehicle {
   color              String
 
   deletedAt  DateTime?
-  customerId String
-  customer   Customer  @relation(fields: [customerId], references: [id])
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
 
   entryTickets EntryTicket?
   reservations Reservation[]
@@ -159,14 +159,16 @@ enum ReservationStatus {
 }
 
 model EntryTicket {
-  id          String            @id @default(uuid())
-  entryTime   DateTime?
-  exitTime    DateTime
-  status      EntryTicketStatus @default(ACTIVE)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  cancelledAt DateTime?
-  isPaid      Boolean           @default(false)
+  id           String            @id @default(uuid())
+  phoneNumber  String
+  licensePlate String
+  entryTime    DateTime
+  exitTime     DateTime?
+  status       EntryTicketStatus @default(ACTIVE)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  cancelledAt  DateTime?
+  isPaid       Boolean           @default(false)
 
   spotId String
   spot   Spot   @relation(fields: [spotId], references: [id])

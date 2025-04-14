@@ -785,10 +785,10 @@ paths:
                 licensePlate:
                   type: string
                   example: 1AAB45323
-                entryTime:
-                  type: string
-                  format: date-time
-                  example: "2021-08-01T12:00:00Z"
+                # entryTime:
+                #   type: string
+                #   format: date-time
+                #   example: "2021-08-01T12:00:00Z"
       responses:
         "200":
           description: Successfully recorded vehicle entry
