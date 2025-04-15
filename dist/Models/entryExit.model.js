@@ -4,52 +4,87 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = __importDefault(require("../Db/db"));
+const ModelError_1 = __importDefault(require("./ModelError"));
 const entryExitModel = {
-    async nonReservationEntry() {
-        // const ticket = await db.entryTicket.create({
-        //     data:{ 
-        //      }   
-        // });
+    async nonReservationEntry(spotId, lotId, reqObj) {
+        const { licensePlate, phoneNumber, vehicle } = reqObj;
+        //TODO:Should license plate filter be here??
+        const activeTicket = await db_1.default.entryTicket.findFirst({
+            where: {
+                phoneNumber,
+                status: "ACTIVE",
+                licensePlate,
+            },
+        });
+        //TODO: Test this case
+        if (activeTicket) {
+            throw new ModelError_1.default("There is an existing active ticket with this phone number", 409);
+        }
+        const ticket = await db_1.default.$transaction(async (tx) => {
+            const newVehicle = await db_1.default.vehicle.upsert({
+                where: {
+                    licensePlateNumber: licensePlate,
+                },
+                update: {},
+                create: {
+                    licensePlateNumber: licensePlate,
+                },
+            });
+            const newTicket = await tx.entryTicket.create({
+                data: {
+                    spotId,
+                    entryTime: new Date(),
+                    licensePlate: licensePlate,
+                    phoneNumber,
+                    vehicleId: newVehicle.id,
+                },
+            });
+            await tx.spot.update({
+                where: {
+                    id: spotId,
+                },
+                data: {
+                    status: "Occupied",
+                    occupationType: "NONRESERVATION",
+                },
+            });
+            return newTicket;
+        });
+        return ticket;
     },
     async findNonReservationSpot(lotId) {
-        /* const spotWithNoReservations = await db.spot.findFirst({
+        //TODO: test the first path
+        //TODO: What should the value of the status below be??????
+        const spotWithNoReservations = await db_1.default.spot.findFirst({
             where: {
-              // status: "Available",
-              lotId,
-              reservations: {
-                none: {
-                  OR: [
-                    {
-                      startTime: {
-                        gte: new Date(),
-                      },
+                status: "Reserved",
+                lotId,
+                reservations: {
+                    none: {
+                        OR: [
+                            {
+                                startTime: {
+                                    gte: new Date(),
+                                },
+                            },
+                            {
+                                endTime: {
+                                    gte: new Date(),
+                                },
+                            },
+                        ],
                     },
-                    {
-                      endTime: {
-                        gte: new Date(),
-                      },
-                    },
-                  ],
                 },
-              },
             },
-          });
-  
-          if (spotWithNoReservations) {
-              return spotWithNoReservations;
-          } */
-        /* const furthestReservationSpot = await db.reservation.groupBy({
-          by: 'spotId',
-          where:{
-            reservations:{
-              some:{
-                startTime:{
-                  gte: now
-                }
-              }
-            }
-          }
-        }); */
+            select: {
+                id: true,
+                name: true,
+                floor: true,
+            },
+        });
+        if (spotWithNoReservations) {
+            return spotWithNoReservations;
+        }
         const now = new Date();
         const furthestReservationSpot = await db_1.default.$queryRaw `
           WITH "furthestResOfEachSpot" AS (
@@ -62,28 +97,42 @@ const entryExitModel = {
             JOIN "Spot" s ON r."spotId"=s.id 
             WHERE
               s."lotId" = ${lotId} 
-              --r."startTime" >= ${now}
+              r."startTime" >= ${now}
+              r."Status" != 'CANCELLED'
             GROUP BY s.id, s.name, s.floor
           )
-           SELECT 
-            s.name,  
-            r."startTime" --to check
-           FROM "Reservation" r 
-           JOIN "Spot" s ON s.id=r."spotId"
-           WHERE 
-            "startTime" = ( 
-                  SELECT MAX("startTime") 
-                  FROM "furthestResOfEachSpot"
-            )
-           --AND
-
-
+          SELECT 
+           s.id,
+           s.name,
+           s.floor,  
+           r."startTime" --to check
+          FROM "Reservation" r 
+          JOIN "Spot" s ON s.id=r."spotId"
+          WHERE 
+           "startTime" = ( 
+                 SELECT MAX("startTime") 
+                 FROM "furthestResOfEachSpot"
+           )
+          AND
+           r."startTime" >= ${now}
         `;
-        return furthestReservationSpot;
+        return furthestReservationSpot[0];
     },
     async assignSpot(lotId, entryTime) {
         // const freeSpots = await reservationModel.checkAvailability( );
-    }
+    },
 };
 exports.default = entryExitModel;
+/* const furthestReservationSpot = await db.reservation.groupBy({
+by: 'spotId',
+where:{
+  reservations:{
+    some:{
+      startTime:{
+        gte: now
+      }
+    }
+  }
+}
+}); */ 
 //# sourceMappingURL=entryExit.model.js.map

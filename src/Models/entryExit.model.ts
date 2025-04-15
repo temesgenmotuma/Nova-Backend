@@ -1,45 +1,50 @@
 import db from "../Db/db";
-import {vehicleType} from "../Controllers/entryExit.controller";
 import { nonResEntryType } from "../Controllers/entryExit.controller";
 import ModelError from "./ModelError";
 
 const entryExitModel = {
-  async nonReservationEntry(spotId: string, lotId: string |undefined, reqObj: nonResEntryType) {
-    const {licensePlate, phoneNumber, vehicle} = reqObj;
+  async nonReservationEntry( spotId: string, lotId: string | undefined, reqObj: nonResEntryType) {
+    const { licensePlate, phoneNumber, vehicle } = reqObj;
+    //TODO:Should license plate filter be here??
     const activeTicket = await db.entryTicket.findFirst({
-      where:{
-        phoneNumber
-      }
+      where: {
+        phoneNumber,
+        status:"ACTIVE",
+        licensePlate,
+      },
     });
 
+    //TODO: Test this case
     if (activeTicket) {
       throw new ModelError(
         "There is an existing active ticket with this phone number",
         409
       );
     }
-    
-    /* const newVehicle = await db.vehicle.upsert({
-      where: {
-        licensePlateNumber: licensePlate,
-      },
-      update: {},
-      create: {
-        licensePlateNumber: licensePlate,
-        make: "dalkfj",
-        model: "dkfja",
-        color: "kdajfl",
-      },
-    });
- */
-    await db.$transaction(async (tx) => {
-      const ticket = await tx.entryTicket.create({
+
+    const ticket = await db.$transaction(async (tx) => {
+      const newVehicle = await db.vehicle.upsert({
+        where: {
+          licensePlateNumber: licensePlate,
+        },
+        update: {},
+        create: {
+          licensePlateNumber: licensePlate,
+        },
+      });
+
+      const newTicket = await tx.entryTicket.create({
         data: {
           spotId,
           entryTime: new Date(),
           licensePlate: licensePlate,
-          phoneNumber
+          phoneNumber,
+          vehicleId: newVehicle.id,
         },
+        omit:{
+          createdAt: true,
+          updatedAt: true,
+        }
       });
 
       await tx.spot.update({
@@ -52,15 +57,17 @@ const entryExitModel = {
         },
       });
 
-      return ticket;
+      return newTicket;
     });
+    return ticket
   },
 
   async findNonReservationSpot(lotId: string | undefined) {
     //TODO: test the first path
+    //TODO: What should the value of the status below be??????
     const spotWithNoReservations = await db.spot.findFirst({
       where: {
-        // status: "Available",
+        status: "Reserved",
         lotId,
         reservations: {
           none: {
@@ -92,16 +99,14 @@ const entryExitModel = {
 
     const now = new Date();
 
-    type FurthestReservationSpot = {
+    type spot = {
       id: string;
       name: string;
       floor: number;
       startTime: Date;
     };
 
-    const furthestReservationSpot = await db.$queryRaw<
-      FurthestReservationSpot[]
-    >`
+    const furthestReservationSpot = await db.$queryRaw<spot[]>`
           WITH "furthestResOfEachSpot" AS (
             SELECT 
               s.id "spotId" , 
@@ -134,9 +139,9 @@ const entryExitModel = {
     return furthestReservationSpot[0];
   },
 
-  async assignSpot(lotId: string, entryTime: Date) {
-    // const freeSpots = await reservationModel.checkAvailability( );
-  },
+  async reservationEntry() {
+    
+  }
 };
 
 export default entryExitModel;

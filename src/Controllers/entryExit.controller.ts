@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import ticketModel from "../Models/entryExit.model";
-import ModelError from "Models/ModelError";
+import ModelError from "../Models/ModelError";
 
+//TODO: May be make all the letters in license plates uppercase
 const baseNonResEntrySchema = z.object({
   phoneNumber: z.string().regex(/^(09\d{8}|07\d{8}|\+2519\d{8})$/),
   licensePlate: z
@@ -29,7 +30,6 @@ const baseNonResEntrySchema = z.object({
   }
 ); */
 
-export type vehicleType = z.infer<typeof baseNonResEntrySchema.shape.vehicle>;
 export type nonResEntryType = z.infer<typeof baseNonResEntrySchema>;
 
 export const nonReservationEntry = async (req: Request, res: Response) => {
@@ -40,8 +40,7 @@ export const nonReservationEntry = async (req: Request, res: Response) => {
   }
 
   try {
-    const { licensePlate, lotId: userLotId, phoneNumber, vehicle } = result.data;
-    const  lotId  = req.user?.lotId || userLotId;
+    const  lotId  = req.user?.lotId || result.data.lotId;
 
     // The attendent assigns spot
     const spot = await ticketModel.findNonReservationSpot(lotId);
@@ -49,6 +48,7 @@ export const nonReservationEntry = async (req: Request, res: Response) => {
       res.status(404).json({message: "No free spot found in this parking lot."});
       return;
     }
+
     //The ticket is created and sent to the customer
     const ticket = await ticketModel.nonReservationEntry(spot.id, lotId,result.data);
 

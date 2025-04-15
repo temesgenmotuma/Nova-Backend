@@ -782,9 +782,24 @@ paths:
             schema:
               type: object
               properties:
+                phoneNumber:
+                  type: string
+                  example: 0912131415
                 licensePlate:
                   type: string
                   example: 1AAB45323
+                vehicle: 
+                  type: object
+                  properties:
+                    make:
+                      type: string
+                    model:
+                      type: string
+                    color:
+                      type: string
+              required:
+                - licensePlate
+                - phoneNumber
                 # entryTime:
                 #   type: string
                 #   format: date-time
@@ -795,15 +810,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  ticketId:
-                    type: string
-                    format: uuid
-                  PlateNumber:
-                    type: string
-                  parkingSpot:
-                    type: string
+                $ref: "#/components/responses/204"
         "400":
           $ref: "#/components/responses/400"
         "404":
@@ -988,8 +995,56 @@ components:
         deletedAt:
           type: string
           format: date-time
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        phoneNumber:
+          type: string
+          example: 0912131415
+        licensePlate:
+          type: string
+          example: 1AAB45323
+        vehicleId:
+          type: string
+          format: uuid
+        spotId:
+          type: string
+          format: uuid
+        entryTime:
+          type: string
+          format: date-time
+        exitTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [active, completed, cancelled]
     # VehicleResponse:
-
+    EntryExitResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        phoneNumber:
+          type: string
+          example: 0912131415
+        licensePlate:
+          type: string
+          example: 1AAB45323
+        vehicle:
+          $ref: "#/components/schemas/Vehicle"
+        entryTime:
+          type: string
+          format: date-time
+          example: "2021-08-01T12:00:00Z"
+        exitTime:
+          type: string
+          format: date-time
+          example: "2021-08-01T13:00:00Z"
   parameters:
     XClientType:
       name: x-client-type

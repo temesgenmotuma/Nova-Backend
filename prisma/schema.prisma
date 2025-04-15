@@ -121,13 +121,13 @@ enum SpotStatus {
 }
 
 model Vehicle {
-  id                 String @id @default(uuid())
-  licensePlateNumber String @unique
-  make               String
-  model              String
-  color              String
+  id                 String    @id @default(uuid())
+  licensePlateNumber String    @unique
+  make               String?
+  model              String?
+  color              String?
+  deletedAt          DateTime?
 
-  deletedAt  DateTime?
   customerId String?
   customer   Customer? @relation(fields: [customerId], references: [id])
 

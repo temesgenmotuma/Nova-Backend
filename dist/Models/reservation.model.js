@@ -6,6 +6,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = __importDefault(require("../Db/db"));
 const reservationModel = {
     async checkAvailability(lotId, fromTime, toTime) {
+        const freeSpot = await db_1.default.spot.findFirst({
+            where: {
+                lotId,
+                status: "Available",
+            },
+        });
+        if (freeSpot)
+            return freeSpot;
         //check if the spot is available during the time the customer wants to reserve
         const fromDateTime = new Date(fromTime).toISOString();
         const toDateTime = new Date(toTime).toISOString();
@@ -42,7 +50,7 @@ const reservationModel = {
         });
         return spot;
         //it is occupied now and occupationType is reservation - reservation can still be made 
-        //for non-reservation customers priority is to find a spot that is free now
+        //for non-reservation customers priority shoudld be to find a spot that is free now
         //if the spot is occupied and occupationType is nonreservation - no reservation can be made
         /* if(spot?.status !== "Available" && spot?.occupationType === "NONRESERVATION"){
           return null;
