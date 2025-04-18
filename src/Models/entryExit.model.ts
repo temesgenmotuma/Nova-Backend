@@ -39,7 +39,6 @@ const entryExitModel = {
     }
 
     const now = new Date();
-
     type spot = {
       id: string;
       name: string;

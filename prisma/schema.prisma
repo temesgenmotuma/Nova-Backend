@@ -17,8 +17,8 @@ model Customer {
   location   Unsupported("geometry(Point, 4326)")? //if cutomer doesn't give location permission
   supabaseId String                                @unique
 
-  vehicles Vehicle[]
-  valetTickets valetTicket[]
+  vehicles     Vehicle[]
+  valetTickets ValetTicket[]
 }
 
 model Provider {
@@ -42,13 +42,13 @@ enum Role {
 }
 
 model Employee {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  role      Role
-  phone     String
-  createdAt DateTime @default(now())
-  supabaseId String @unique
+  id         String   @id @default(uuid())
+  name       String
+  email      String   @unique
+  role       Role
+  phone      String
+  createdAt  DateTime @default(now())
+  supabaseId String   @unique
 
   lotId String?
   lot   Lot?    @relation(fields: [lotId], references: [id])
@@ -56,7 +56,7 @@ model Employee {
   providerId String
   provider   Provider @relation(fields: [providerId], references: [id])
 
-  valetTickets valetTicket[] 
+  valetTickets ValetTicket[]
 }
 
 model Invitation {
@@ -134,9 +134,10 @@ model Vehicle {
   customerId String?
   customer   Customer? @relation(fields: [customerId], references: [id])
 
+  // should this be one to one
   entryTickets EntryTicket?
   reservations Reservation[]
-  valetTickets valetTicket[]
+  valetTickets ValetTicket[]
 }
 
 model Reservation {
@@ -207,17 +208,17 @@ model ProviderDefaultSetting {
   updatedAt DateTime @updatedAt
 }
 
-model valetTicket {
-  id        String   @id @default(uuid())
-  issuedAt  DateTime @default(now())
-  customerEmail     String?
+model ValetTicket {
+  id            String   @id @default(uuid())
+  issuedAt      DateTime @default(now())
+  customerEmail String?
 
   customerId String?
   customer   Customer? @relation(fields: [customerId], references: [id])
 
-  issuedBy  String
-  issuer    Employee @relation(fields: [issuedBy], references: [id])
-  
+  issuedBy String
+  issuer   Employee @relation(fields: [issuedBy], references: [id])
+
   vehicleId String
   vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
 }
