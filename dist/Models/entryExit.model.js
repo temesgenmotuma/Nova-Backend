@@ -6,52 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = __importDefault(require("../Db/db"));
 const ModelError_1 = __importDefault(require("./ModelError"));
 const entryExitModel = {
-    async nonReservationEntry(spotId, lotId, reqObj) {
-        const { licensePlate, phoneNumber, vehicle } = reqObj;
-        //TODO:Should license plate filter be here??
-        const activeTicket = await db_1.default.entryTicket.findFirst({
-            where: {
-                phoneNumber,
-                status: "ACTIVE",
-                licensePlate,
-            },
-        });
-        //TODO: Test this case
-        if (activeTicket) {
-            throw new ModelError_1.default("There is an existing active ticket with this phone number", 409);
-        }
-        const ticket = await db_1.default.$transaction(async (tx) => {
-            const newVehicle = await db_1.default.vehicle.upsert({
-                where: {
-                    licensePlateNumber: licensePlate,
-                },
-                update: {},
-                create: {
-                    licensePlateNumber: licensePlate,
-                },
-            });
-            const newTicket = await tx.entryTicket.create({
-                data: {
-                    spotId,
-                    entryTime: new Date(),
-                    licensePlate: licensePlate,
-                    phoneNumber,
-                    vehicleId: newVehicle.id,
-                },
-            });
-            await tx.spot.update({
-                where: {
-                    id: spotId,
-                },
-                data: {
-                    status: "Occupied",
-                    occupationType: "NONRESERVATION",
-                },
-            });
-            return newTicket;
-        });
-        return ticket;
-    },
     async findNonReservationSpot(lotId) {
         //TODO: test the first path
         //TODO: What should the value of the status below be??????
@@ -118,9 +72,88 @@ const entryExitModel = {
         `;
         return furthestReservationSpot[0];
     },
-    async assignSpot(lotId, entryTime) {
-        // const freeSpots = await reservationModel.checkAvailability( );
+    async nonReservationEntry(spotId, lotId, reqObj) {
+        const { licensePlate, phoneNumber, vehicle } = reqObj;
+        //TODO:Should license plate filter be here??
+        const activeTicket = await db_1.default.entryTicket.findFirst({
+            where: {
+                phoneNumber,
+                status: "ACTIVE",
+                licensePlate,
+            },
+        });
+        //TODO: Test this case
+        if (activeTicket) {
+            throw new ModelError_1.default("There is an existing active ticket with this phone number", 409);
+        }
+        const ticket = await db_1.default.$transaction(async (tx) => {
+            const newVehicle = await db_1.default.vehicle.upsert({
+                where: {
+                    licensePlateNumber: licensePlate,
+                },
+                update: {},
+                create: {
+                    licensePlateNumber: licensePlate,
+                },
+            });
+            const newTicket = await tx.entryTicket.create({
+                data: {
+                    spotId,
+                    entryTime: new Date(),
+                    licensePlate: licensePlate,
+                    phoneNumber,
+                    vehicleId: newVehicle.id,
+                },
+                omit: {
+                    createdAt: true,
+                    updatedAt: true,
+                }
+            });
+            await tx.spot.update({
+                where: {
+                    id: spotId,
+                },
+                data: {
+                    status: "Occupied",
+                    occupationType: "NONRESERVATION",
+                },
+            });
+            return newTicket;
+        });
+        return ticket;
     },
+    async nonReservationExit() {
+    },
+    async reservationEntry(licensePlate, phone, lotId) {
+        const reservation = await db_1.default.reservation.findFirst({
+            where: {
+                licensePlate,
+                status: "ACTIVE",
+                spot: {
+                    lotId: lotId,
+                },
+            },
+            include: {
+                vehicle: {
+                    select: {
+                        id: true,
+                    },
+                },
+            },
+        });
+        if (!reservation)
+            throw new ModelError_1.default("Reservation not found", 404);
+        const ticket = await db_1.default.entryTicket.create({
+            data: {
+                spotId: reservation.spotId,
+                entryTime: new Date(),
+                licensePlate: reservation.licensePlate,
+                phoneNumber: phone,
+                vehicleId: reservation.vehicle.id,
+            },
+        });
+        return ticket;
+    }
 };
 exports.default = entryExitModel;
 /* const furthestReservationSpot = await db.reservation.groupBy({

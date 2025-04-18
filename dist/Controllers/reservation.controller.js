@@ -6,10 +6,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getReservations = exports.cancelReservation = exports.reserve = void 0;
 const zod_1 = require("zod");
 const reservation_model_1 = __importDefault(require("../Models/reservation.model"));
+const ModelError_1 = __importDefault(require("../Models/ModelError"));
 const reserveQuerySchema = zod_1.z.object({
     vehicleId: zod_1.z.string().uuid(),
     startTime: zod_1.z.coerce.date(),
     endTime: zod_1.z.coerce.date(),
+    // licensePlate: z
+    // .string()
+    // .regex(
+    //   /^\d{1,3}(AA|ET|UN|AU|AF|AM|BG|DR|GM|HR|OR|SM|CD|AO)([A-C]\d{5}|\d{5}|\d{4})$/
+    // ),
     lotId: zod_1.z.string().uuid(),
 });
 const futureIdSchema = zod_1.z.string().uuid();
@@ -39,6 +45,10 @@ const reserve = async (req, res) => {
         res.status(201).json(reservation);
     }
     catch (error) {
+        if (error instanceof ModelError_1.default) {
+            res.status(400).json({ message: error.message });
+            return;
+        }
         console.error(error);
         res.status(500).json({ message: "Error booking spot.", error: error.message });
     }

@@ -12,6 +12,7 @@ router.get("", supabaseAuthMiddleware_1.default, vehicle_controller_1.getVehicle
 router.get("/:vehicleId", supabaseAuthMiddleware_1.default, vehicle_controller_1.getVehicle);
 router.post("", supabaseAuthMiddleware_1.default, vehicle_controller_1.createVehicle);
 router.delete("/:vehicleId", supabaseAuthMiddleware_1.default, vehicle_controller_1.deleteVehicle);
-router.post("/entry", supabaseAuthMiddleware_1.default, entryExit_controller_1.nonReservationEntry);
+router.post("/entry/walk-in", supabaseAuthMiddleware_1.default, entryExit_controller_1.nonReservationEntry);
+router.post("/entry/reservation", supabaseAuthMiddleware_1.default, entryExit_controller_1.reservationEntry);
 exports.default = router;
 //# sourceMappingURL=vehicle.js.map

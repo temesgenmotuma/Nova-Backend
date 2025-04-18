@@ -18,6 +18,7 @@ model Customer {
   supabaseId String                                @unique
 
   vehicles Vehicle[]
+  valetTickets valetTicket[]
 }
 
 model Provider {
@@ -32,6 +33,7 @@ model Provider {
   employees   Employee[]
   lots        Lot[]
   invitations Invitation[]
+  settings    ProviderSetting[]
 }
 
 enum Role {
@@ -46,6 +48,7 @@ model Employee {
   role      Role
   phone     String
   createdAt DateTime @default(now())
+  supabaseId String @unique
 
   lotId String?
   lot   Lot?    @relation(fields: [lotId], references: [id])
@@ -53,7 +56,7 @@ model Employee {
   providerId String
   provider   Provider @relation(fields: [providerId], references: [id])
 
-  supabaseId String @unique
+  valetTickets valetTicket[] 
 }
 
 model Invitation {
@@ -133,17 +136,19 @@ model Vehicle {
 
   entryTickets EntryTicket?
   reservations Reservation[]
+  valetTickets valetTicket[]
 }
 
 model Reservation {
-  id          String            @id @default(uuid())
-  startTime   DateTime
-  endTime     DateTime
-  arrivalTime DateTime?
-  status      ReservationStatus
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  cancelledAt DateTime?
+  id           String            @id @default(uuid())
+  startTime    DateTime
+  endTime      DateTime
+  arrivalTime  DateTime?
+  status       ReservationStatus
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  cancelledAt  DateTime?
+  licensePlate String
 
   spotId String
   spot   Spot   @relation(fields: [spotId], references: [id])
@@ -181,4 +186,38 @@ enum EntryTicketStatus {
   ACTIVE
   CANCELLED
   COMPLETED
+}
+
+model ProviderSetting {
+  id        String   @id @default(uuid())
+  name      String
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  providerId String
+  provider   Provider @relation(fields: [providerId], references: [id])
+}
+
+model ProviderDefaultSetting {
+  id        String   @id @default(uuid())
+  name      String
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model valetTicket {
+  id        String   @id @default(uuid())
+  issuedAt  DateTime @default(now())
+  customerEmail     String?
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  issuedBy  String
+  issuer    Employee @relation(fields: [issuedBy], references: [id])
+  
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
 }

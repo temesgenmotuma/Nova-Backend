@@ -578,11 +578,11 @@ paths:
                 startTime:
                   type: string
                   format: date-time
-                  example: "2021-08-01T12:00:00Z"
+                  example: "2025-04-16T12:00:00Z"
                 endTime:
                   type: string
                   format: date-time
-                  example: "2021-08-01T13:00:00Z"
+                  example: "2025-04-16T13:00:00Z"
                 lotId:
                   type: string
                   format: uuid
@@ -640,17 +640,11 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/XClientType"
-        - in: path
-          name: customerId
-          required: true
-          schema:
-            type: string
-            format: uuid
-      summary: Get all vehicles
+      summary: Get vehicles of a particulat customer
       description: Returns all vehicles for a customer.
       responses:
         "200":
-          description: Successfully retrieved vehicles
+          description: Successfully retrieved vehicles of the cusomter
           content:
             application/json:
               schema:
@@ -765,7 +759,7 @@ paths:
           $ref: "#/components/responses/500"
 
  # Entry/Exit Endpoints
-  /vehicles/entry:
+  /vehicles/entry/walk-in:
     post:
       tags:
         - vehicle
@@ -810,14 +804,56 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/responses/204"
+                $ref: "#/components/schemas/EntryResponse"
         "400":
           $ref: "#/components/responses/400"
         "404":
           $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
-
+  /vehicles/entry/reservation:
+    post:
+      tags:
+        - vehicle
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+      summary: Record reservation vehicle entry
+      description: Records the entry of a vehicle w/c reserved a spot into a parking lot.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone:
+                  type: string
+                  example: 0912131415
+                licensePlate:
+                  type: string
+                  example: 1AAB45323
+                lotId: 
+                  type: string
+                  format: uuid
+                  
+              required:
+                - licensePlate
+                - phoneNumber
+      responses:
+        "201":
+          description: Successfully recorded vehicle entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryResponse"
+        "400":
+          $ref: "#/components/responses/400"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
 
 components:
   securitySchemes:
@@ -995,7 +1031,7 @@ components:
         deletedAt:
           type: string
           format: date-time
-    Ticket:
+    EntryTicket:
       type: object
       properties:
         id:
@@ -1023,28 +1059,11 @@ components:
           type: string
           enum: [active, completed, cancelled]
     # VehicleResponse:
-    EntryExitResponse:
+    EntryResponse:
       type: object
       properties:
-        id:
-          type: string
-          format: uuid
-        phoneNumber:
-          type: string
-          example: 0912131415
-        licensePlate:
-          type: string
-          example: 1AAB45323
-        vehicle:
-          $ref: "#/components/schemas/Vehicle"
-        entryTime:
-          type: string
-          format: date-time
-          example: "2021-08-01T12:00:00Z"
-        exitTime:
-          type: string
-          format: date-time
-          example: "2021-08-01T13:00:00Z"
+        ticket:
+          $ref: "#/components/schemas/EntryTicket"
   parameters:
     XClientType:
       name: x-client-type

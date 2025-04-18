@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = __importDefault(require("../Db/db"));
+const ModelError_1 = __importDefault(require("./ModelError"));
 const reservationModel = {
     async checkAvailability(lotId, fromTime, toTime) {
         const freeSpot = await db_1.default.spot.findFirst({
@@ -49,32 +50,44 @@ const reservationModel = {
             },
         });
         return spot;
-        //it is occupied now and occupationType is reservation - reservation can still be made 
+        //it is occupied now and occupationType is reservation - reservation can still be made
         //for non-reservation customers priority shoudld be to find a spot that is free now
         //if the spot is occupied and occupationType is nonreservation - no reservation can be made
         /* if(spot?.status !== "Available" && spot?.occupationType === "NONRESERVATION"){
-          return null;
-        } */
+              return null;
+            } */
     },
     async reserve(spotId, reservation) {
         const result = await db_1.default.$transaction(async (tx) => {
-            //lock the row 
+            //lock the row
             await tx.$executeRaw `SELECT * FROM "Spot" WHERE id=${spotId} FOR UPDATE;`;
             /* await tx.reservation.create({
-              data:{
-                startTime: reservation.startTime,
-                endTime: reservation.endTime,
-                vehicleId: reservation.vehicleId,
-                spotId: spotId,
-                status: "ACTIVE",
-              },
-            });
-       */
-            //TODO:payment likely to go in here 
+                  data:{
+                    startTime: reservation.startTime,
+                    endTime: reservation.endTime,
+                    vehicleId: reservation.vehicleId,
+                    spotId: spotId,
+                    status: "ACTIVE",
+                  },
+                });
+           */
+            //TODO:payment likely to go in here
             //create a reservation record and update the status in spot to reserved
+            const vehicle = await tx.vehicle.findUnique({
+                where: {
+                    id: reservation.vehicleId,
+                    deletedAt: null,
+                },
+                select: {
+                    licensePlateNumber: true
+                }
+            });
+            if (!vehicle) {
+                throw new ModelError_1.default("Vehicle not found", 404);
+            }
             return await tx.spot.update({
                 where: {
-                    id: spotId
+                    id: spotId,
                 },
                 data: {
                     status: "Reserved",
@@ -84,17 +97,18 @@ const reservationModel = {
                             startTime: reservation.startTime,
                             endTime: reservation.endTime,
                             vehicleId: reservation.vehicleId,
+                            licensePlate: vehicle.licensePlateNumber,
                             status: "ACTIVE",
-                        }
-                    }
+                        },
+                    },
                 },
             });
         });
         return result;
     },
     async cancelReservation(reservationId) {
-        //free the spot 
-        //mark the reservation as cancelled 
+        //free the spot
+        //mark the reservation as cancelled
         return await db_1.default.reservation.update({
             where: {
                 id: reservationId,

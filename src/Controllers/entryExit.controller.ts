@@ -22,6 +22,14 @@ const baseNonResEntrySchema = z.object({
   // entryTime: z.string().datetime(),
 });
 
+const resEntrySchema = z.object({
+  licensePlate: z.string().regex(
+    /^\d{1,3}(AA|ET|UN|AU|AF|AM|BG|DR|GM|HR|OR|SM|CD|AO)([A-C]\d{5}|\d{5}|\d{4})$/
+  ),
+  phone: z.string().regex(/^(09\d{8}|07\d{8}|\+2519\d{8})$/),
+  lotId: z.string().uuid().optional(),
+});
+
 /* const nonResEntrySchema = baseNonResEntrySchema.refine(
   (data) => new Date(data.entryTime) >= new Date(),
   {
@@ -38,10 +46,13 @@ export const nonReservationEntry = async (req: Request, res: Response) => {
     res.status(400).json({  message: "Invalid request",  errors: result.error.flatten().fieldErrors,});
     return;
   }
+  const lotId  = req.user?.lotId || result.data.lotId;
+  if(!req.user?.lotId && !result.data.lotId){
+    res.status(400).json({message: "lotId is required"});
+    return;
+  }
 
   try {
-    const  lotId  = req.user?.lotId || result.data.lotId;
-
     // The attendent assigns spot
     const spot = await ticketModel.findNonReservationSpot(lotId);
     if(!spot){
@@ -53,11 +64,40 @@ export const nonReservationEntry = async (req: Request, res: Response) => {
     const ticket = await ticketModel.nonReservationEntry(spot.id, lotId,result.data);
 
     res.status(200).json({ticket});
-  } catch (err) {
-    console.error(err);
-    if(err instanceof ModelError){
-      res.status(err.statusCode).json({message: err.message});
+  } catch (error) {
+    if(error instanceof ModelError){
+      res.status(error.statusCode).json({message: error.message});
     }
-    res.status(500).json({  message: "Internal server error",  error: (err as Error).message,});
+    console.error(error);
+    res.status(500).json({  message: "Internal server error",  error: (error as Error).message,});
+  }
+};
+
+export const nonReservationExit = async (req:Request, res:Response) => {
+
+};
+
+export const reservationEntry = async (req: Request, res: Response) => {
+  const result = resEntrySchema.safeParse(req.body);
+  if(!result.success){
+    res.status(400).json({message: "Invalid request", error: result.error.flatten().fieldErrors});
+    return;
+  }
+  if(!req.user?.lotId && !result.data.lotId){
+    res.status(400).json({message: "lotId is required"});
+    return;
+  }
+  const lotId = req.user?.lotId || result.data.lotId!;
+  const {licensePlate, phone } = result.data;
+  try {
+    const ticket = await ticketModel.reservationEntry(licensePlate, phone, lotId);
+    res.status(201).json({ticket});
+  } catch (error) {
+    if(error instanceof ModelError){
+      res.status(error.statusCode).json({message: error.message});
+      return;
+    }
+    console.error(error);
+    res.status(500).json({  message: "Internal server error",  error: (error as Error).message,});
   }
 };

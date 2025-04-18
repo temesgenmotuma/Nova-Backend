@@ -1,11 +1,17 @@
 import { Request, Response } from "express";
 import {z} from "zod";
 import reservationModel from "../Models/reservation.model";
+import ModelError from "../Models/ModelError";
 
 const reserveQuerySchema = z.object({
     vehicleId: z.string().uuid(),
     startTime: z.coerce.date(),
     endTime: z.coerce.date(),
+    // licensePlate: z
+    // .string()
+    // .regex(
+    //   /^\d{1,3}(AA|ET|UN|AU|AF|AM|BG|DR|GM|HR|OR|SM|CD|AO)([A-C]\d{5}|\d{5}|\d{4})$/
+    // ),
     lotId: z.string().uuid(),
 });
 
@@ -41,6 +47,10 @@ export const reserve = async (req: Request, res: Response) => {
       res.status(201).json(reservation);
       
     } catch (error) {
+      if(error instanceof ModelError){
+        res.status(400).json({message: error.message});
+        return;
+      }
       console.error(error);
       res.status(500).json({message: "Error booking spot.", error: (error as Error).message});
     }  
