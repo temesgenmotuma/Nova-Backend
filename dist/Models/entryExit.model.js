@@ -74,6 +74,7 @@ const entryExitModel = {
     },
     async nonReservationEntry(spotId, lotId, reqObj) {
         const { licensePlate, phoneNumber, vehicle } = reqObj;
+        //TODO: There should be some check on the time that has passed since the reservation start time.
         //TODO:Should license plate filter be here??
         const activeTicket = await db_1.default.entryTicket.findFirst({
             where: {
@@ -156,16 +157,4 @@ const entryExitModel = {
     }
 };
 exports.default = entryExitModel;
-/* const furthestReservationSpot = await db.reservation.groupBy({
-by: 'spotId',
-where:{
-  reservations:{
-    some:{
-      startTime:{
-        gte: now
-      }
-    }
-  }
-}
-}); */ 
 //# sourceMappingURL=entryExit.model.js.map

@@ -100,7 +100,7 @@ model Spot {
   floor          Int
   price          Decimal?
   status         SpotStatus      @default(Available)
-  occupationType OccupationType?
+  occupationType OccupationType? //if free = null
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -108,7 +108,6 @@ model Spot {
   lot   Lot    @relation(fields: [lotId], references: [id])
 
   entryTickets EntryTicket[]
-
   reservations Reservation[]
 }
 
@@ -209,9 +208,12 @@ model ProviderDefaultSetting {
 }
 
 model ValetTicket {
-  id            String   @id @default(uuid())
-  issuedAt      DateTime @default(now())
+  id            String            @id @default(uuid())
+  issuedAt      DateTime          @default(now())
   customerEmail String?
+  status        ValetTicketStatus @default(ISSUED)
+  requestedAt   DateTime?
+  completedAt   DateTime?
 
   customerId String?
   customer   Customer? @relation(fields: [customerId], references: [id])
@@ -221,4 +223,11 @@ model ValetTicket {
 
   vehicleId String
   vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+}
+
+enum ValetTicketStatus {
+  ISSUED
+  VEHICLEREQUESTED
+  COMPLETED
+  CANCELLED
 }

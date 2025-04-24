@@ -179,7 +179,7 @@ export const inviteEmployee = async (req: Request, res: Response) => {
     await employeeModel.createInvitation(email, role, providerId);
 
     //TODO: add correct email template
-    await sendEmail(email, "");
+    await sendEmail(email);
     res.json({ message: "Invitation email sent." });
   } catch (error) {
     console.error(error);

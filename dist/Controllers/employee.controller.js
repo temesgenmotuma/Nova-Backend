@@ -145,7 +145,7 @@ const inviteEmployee = async (req, res) => {
         //do i need to check if an unexpired inivitation already exists?
         await employee_model_1.default.createInvitation(email, role, providerId);
         //TODO: add correct email template
-        await (0, sendEmail_1.default)(email, "");
+        await (0, sendEmail_1.default)(email);
         res.json({ message: "Invitation email sent." });
     }
     catch (error) {

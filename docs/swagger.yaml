@@ -19,6 +19,8 @@ tags:
     description: "Endpoints related to spots"
   - name: "vehicle"
     description: "Endpoints related to vehicles"
+  - name: "valet-parking"
+    description: "Endpoints related to valet parking"
 
 paths:
 # Customer Endpoints
@@ -837,7 +839,6 @@ paths:
                 lotId: 
                   type: string
                   format: uuid
-                  
               required:
                 - licensePlate
                 - phoneNumber
@@ -850,6 +851,123 @@ paths:
                 $ref: "#/components/schemas/EntryResponse"
         "400":
           $ref: "#/components/responses/400"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+
+  # Valet Endpoints - TODO:complete
+  /vehicles/valet-ticket:
+    post:
+      tags:
+        - valet-parking
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+      summary: Create a valet ticket
+      description: Creates a valet ticket for a vehicle.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vehicle:
+                  type: object
+                  properties:
+                    make:
+                      type: string
+                      example: "Toyota"
+                    model:
+                      type: string
+                      example: "Camry"
+                    color:
+                      type: string
+                      example: "Black"
+                    licensePlate:
+                      type: string
+                      example: 1AAB45323
+                  required:
+                    - licensePlate
+                customer:
+                  type: object
+                  properties:
+                    email: 
+                      type: string
+                      example: custone@gmail.com
+
+      responses:
+        "201":
+          description: Successfully created valet ticket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryResponse"
+        "400":
+          $ref: "#/components/responses/400"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+  /vehicles/retrieval/{ticketId}:
+    patch:
+      tags:
+        - valet-parking
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: ticketId
+          description: The ID of the valet ticket
+          required: true
+          schema:
+            type: string
+            format: uuid
+      summary: Make a vehicle retreival request
+      description: Makes a vehicle retreival request 
+      responses:
+        "200":
+          description: Successfully request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticketId:
+                    type: string
+                    example: "12345"
+                  vehicleId:
+                    type: string
+                    example: "67890"
+                  valetId:
+                    type: string
+                    example: "54321"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+  /vehicles/retrieval:
+    get:
+      tags:
+        - valet-parking
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+      summary: Get all valet retrieval requests
+      description: Returns all valet retrieval requests.
+      responses:
+        "200":
+          description: Successfully retrieved valet tickets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EntryTicket"
         "404":
           $ref: "#/components/responses/404"
         "500":
