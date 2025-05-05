@@ -87,11 +87,27 @@ model Lot {
   providerId String
   provider   Provider @relation(fields: [providerId], references: [id])
 
-  spots       Spot[]
+  // spots       Spot[]
+  zones       Zone[]
   invitations Invitation[]
   employees   Employee[]
 
   @@index([location], name: "location_idx", type: Gist)
+}
+
+model Zone {
+  id                 String    @id @default(uuid())
+  name               String
+  vehicleType        String?
+  totalNumberOfSpots Int
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  lotId String
+  lot   Lot    @relation(fields: [lotId], references: [id])
+
+  spots Spot[]
 }
 
 model Spot {
@@ -104,12 +120,14 @@ model Spot {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
-  lotId String
-  lot   Lot    @relation(fields: [lotId], references: [id])
+  // lotId String
+  // lot   Lot    @relation(fields: [lotId], references: [id])
 
   entryTickets EntryTicket[]
-
   reservations Reservation[]
+
+  zone   Zone   @relation(fields: [zoneId], references: [id])
+  zoneId String
 }
 
 enum OccupationType {
