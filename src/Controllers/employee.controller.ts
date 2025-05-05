@@ -7,6 +7,7 @@ import createAuthUser from "../services/supabase/auth/signUp";
 import authSignin from "../services/supabase/auth/signIn";
 import sendEmail from "../services/email/sendEmail";
 import sendResetPasswordEmail from "../services/supabase/auth/resetPassord";
+import ModelError from "../Models/ModelError";
 
 const employeeSchema = joi.object({
   email: joi.string().email().required(),
@@ -115,6 +116,10 @@ export const createProvider = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error(error);
+    if(error instanceof ModelError){
+      res.status(error.statusCode).json({message: error.message});
+      return;
+    }
     res.status(500).json({ error: "Error creating provider." });
   }
 };

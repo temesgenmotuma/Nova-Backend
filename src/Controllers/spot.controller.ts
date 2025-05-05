@@ -4,23 +4,22 @@ import {z} from "zod";
 
 import spotModel from "../Models/spot.model";
 import vehicleModel from "Models/vehicle.model";
+import  ModelError  from "../Models/ModelError";
 
 const createSpotSchema = joi.object({
   name: joi.string().optional(),
   number: joi.number().integer().positive().required(),
   floor: joi.number().integer().allow(null).default(null),
   startingNumber: joi.number().integer().empty("").default(1),
-  lotId: joi.string().uuid(),
+  zoneId: joi.string().uuid(),
 });
 
 const updateSpotSchema = joi.object({
   name: joi.string().optional().empty("").default(null),
   floor: joi.number().integer().optional().empty("").default(null),
-});
+}).or("name", "floor");
 
 const idSchema = joi.string().uuid();
-
-const futureIdSchema = z.string().uuid();
 
 export const createSpot = async (req: Request, res: Response) => {
   const { value, error } = createSpotSchema.validate(req.body);
@@ -29,18 +28,22 @@ export const createSpot = async (req: Request, res: Response) => {
     return;
   }
 
-  const { number, name, floor, startingNumber, lotId } = value;
+  const { number, name, floor, startingNumber, zoneId } = value;
   try {
     const spot = await spotModel.createSpot(
       name,
       number,
       floor,
       startingNumber,
-      lotId
+      zoneId
     );
     res.status(201).json({ message: "Spot created successfully.", spot});
   } catch (error) {
     console.error(error);
+    if (error instanceof ModelError) {
+      res.status(error.statusCode).json({message: error.message});
+      return;
+    }
     res.status(500).json({ message: "Error creating spot" });
   }
 };

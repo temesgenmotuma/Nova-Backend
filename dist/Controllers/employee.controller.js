@@ -11,6 +11,7 @@ const signUp_1 = __importDefault(require("../services/supabase/auth/signUp"));
 const signIn_1 = __importDefault(require("../services/supabase/auth/signIn"));
 const sendEmail_1 = __importDefault(require("../services/email/sendEmail"));
 const resetPassord_1 = __importDefault(require("../services/supabase/auth/resetPassord"));
+const ModelError_1 = __importDefault(require("../Models/ModelError"));
 const employeeSchema = joi_1.default.object({
     email: joi_1.default.string().email().required(),
     name: joi_1.default.string().required(),
@@ -86,6 +87,10 @@ const createProvider = async (req, res) => {
     }
     catch (error) {
         console.error(error);
+        if (error instanceof ModelError_1.default) {
+            res.status(error.statusCode).json({ message: error.message });
+            return;
+        }
         res.status(500).json({ error: "Error creating provider." });
     }
 };

@@ -5,34 +5,37 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.checkAvailability = exports.updateSpot = exports.getSpot = exports.createSpot = void 0;
 const joi_1 = __importDefault(require("joi"));
-const zod_1 = require("zod");
 const spot_model_1 = __importDefault(require("../Models/spot.model"));
+const ModelError_1 = __importDefault(require("../Models/ModelError"));
 const createSpotSchema = joi_1.default.object({
     name: joi_1.default.string().optional(),
     number: joi_1.default.number().integer().positive().required(),
     floor: joi_1.default.number().integer().allow(null).default(null),
     startingNumber: joi_1.default.number().integer().empty("").default(1),
-    lotId: joi_1.default.string().uuid(),
+    zoneId: joi_1.default.string().uuid(),
 });
 const updateSpotSchema = joi_1.default.object({
     name: joi_1.default.string().optional().empty("").default(null),
     floor: joi_1.default.number().integer().optional().empty("").default(null),
-});
+}).or("name", "floor");
 const idSchema = joi_1.default.string().uuid();
-const futureIdSchema = zod_1.z.string().uuid();
 const createSpot = async (req, res) => {
     const { value, error } = createSpotSchema.validate(req.body);
     if (error) {
         res.status(400).json({ message: "Invalid request", error: error.message });
         return;
     }
-    const { number, name, floor, startingNumber, lotId } = value;
+    const { number, name, floor, startingNumber, zoneId } = value;
     try {
-        const spot = await spot_model_1.default.createSpot(name, number, floor, startingNumber, lotId);
+        const spot = await spot_model_1.default.createSpot(name, number, floor, startingNumber, zoneId);
         res.status(201).json({ message: "Spot created successfully.", spot });
     }
     catch (error) {
         console.error(error);
+        if (error instanceof ModelError_1.default) {
+            res.status(error.statusCode).json({ message: error.message });
+            return;
+        }
         res.status(500).json({ message: "Error creating spot" });
     }
 };

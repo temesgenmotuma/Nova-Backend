@@ -5,6 +5,7 @@ import ModelError from "../Models/ModelError";
 
 const reserveQuerySchema = z.object({
     vehicleId: z.string().uuid(),
+    zoneId: z.string().uuid(),
     startTime: z.coerce.date(),
     endTime: z.coerce.date(),
     // licensePlate: z
@@ -34,8 +35,8 @@ export const reserve = async (req: Request, res: Response) => {
   
       //check spot availability during the time the customer wants to reserve
       //If a spot is available somehow choose a parking spot
-      const {lotId, startTime, endTime} = result.data;
-      const freeSpot = await reservationModel.checkAvailability(lotId, startTime, endTime);
+      const {lotId, zoneId, startTime, endTime} = result.data;
+      const freeSpot = await reservationModel.checkAvailability(lotId, zoneId, startTime, endTime);
       if(!freeSpot){
         res.status(404).json({message: "Sorry. This lot is fully booked for the requested time."});
         return;

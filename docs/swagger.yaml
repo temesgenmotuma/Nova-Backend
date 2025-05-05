@@ -17,8 +17,12 @@ tags:
     description: "Endpoints related to lots"
   - name: "spot"
     description: "Endpoints related to spots"
+  - name: "zone"
+    description: "Endpoints related to zones"
   - name: "vehicle"
     description: "Endpoints related to vehicles"
+  - name: "reservation"
+    description: "Endpoints related to reservations"
 
 paths:
 # Customer Endpoints
@@ -38,11 +42,11 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: user@example.com
+                  example: custone@gmail.com
                 password:
                   type: string
                   format: password
-                  example: "securepassword123"
+                  example: "12345678"
                 username:
                   type: string
                   example: "user123"
@@ -57,6 +61,9 @@ paths:
                   id:
                     type: string
                     example: "12345"
+                  zoneId: 
+                    type: string
+                    format: uuid
                   email:
                     type: string
                     example: "user@example.com"
@@ -159,7 +166,7 @@ paths:
                 password: 
                   type: string
                   format: password
-                  example: "empone12345"
+                  example: "12345678"
       responses:
         "200":
           description: Successfully logged in
@@ -303,6 +310,7 @@ paths:
  #Provider Endpoints 
   /provider/{provId}/lots:
     get:
+      deprecated: true
       tags:
         - lot
       security:
@@ -332,14 +340,35 @@ paths:
           $ref: "#/components/responses/500"
 
 # Lot Endpoints 
+  #TODO: Remove the ability to create spots
   /lots:
+    get:
+      tags:
+        - lot
+      security:
+        - BearerAuth: []
+      summary: Get all parking lots of the authenticated provider
+      description: Returns all parking lots of the authenticated provider.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+      responses:
+        "200":
+          description: Successfully retrieved parking lots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lot"
+        "500":
+          $ref: "#/components/responses/500"  
     post:
       tags:
         - lot
       security:
         - BearerAuth: []    
-      summary: Create a new parking lot
-      description: Creates a new parking lot for a provider.
+      summary: Create a new lot & optionally create spots in it.
+      description: Creates a new parking lot for a provider & optionally create spots in it.
       parameters:
         - $ref: "#/components/parameters/XClientType"
       requestBody:
@@ -430,6 +459,71 @@ paths:
                   $ref: "#/components/schemas/Lot"
         "500":
           $ref: "#/components/responses/500"
+  
+# Zone Endpoints
+  # TODO: Below EndPts: Yet to be implemented - High priority
+  /lots/{lotId}/zones:
+    get:
+      tags:
+        - zone
+      security:
+        - BearerAuth: []
+      summary: Get all zones for a parking lot
+      description: Returns all zones for a parking lot.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: lotId
+          description: The ID of the parking lot
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successfully retrieved parking zones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lot"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+    post:
+      tags:
+        - zone
+      security:
+        - BearerAuth: []
+      summary: Create a new zone for an exsiting parking lot 
+      description: Creates a new zone for a parking lot.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: lotId
+          description: The ID of the parking lot
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: 
+              $ref: "#/components/schemas/ZoneCreateRequest"
+      responses:
+        "201":
+          description: Successfully created region
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lot"
+        "400":
+          $ref: "#/components/responses/400"
+        "500":
+          $ref: "#/components/responses/500"
+  
 # Spot Endpoints 
   /spots:
     post:
@@ -450,7 +544,7 @@ paths:
               properties:
                 name:
                   type: string
-                  example: "P1"
+                  example: "P"
                 number:
                   type: integer
                   example: 1
@@ -461,7 +555,7 @@ paths:
                   type: string
                   nullable: true
                   example: 1
-                lotId:
+                zoneId:
                   type: string
                   example: "12345"
       responses:
@@ -553,12 +647,42 @@ paths:
           $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
-  
+  # TODO: Below EndPts: Yet to be implemented - High priority
+  /zones/{zoneId}/spots:
+    get:
+      tags:
+        - spot
+      security:
+        - BearerAuth: []
+      summary: Get all spots for a zone
+      description: Returns all parking spots for a zone.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: zoneId
+          description: The ID of the zone
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successfully retrieved parking spots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Spot"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+
 # Reservation Endpoints  
   /reservations:
     post:
       tags:
-        - spot
+        - reservation
       security:
         - BearerAuth: []
       summary: Reserve a parking spot
@@ -573,6 +697,9 @@ paths:
               type: object
               properties:
                 vehicleId:
+                  type: string
+                  format: uuid
+                zoneId:
                   type: string
                   format: uuid
                 startTime:
@@ -603,7 +730,7 @@ paths:
   /reservations/{id}:  
     delete:
       tags:
-        - spot
+        - reservation
       security:
         - BearerAuth: []
       summary: Cancel a reservation
@@ -948,6 +1075,35 @@ components:
               type: number
               format: float
               example: -122.4194
+        # spot:
+        #   type: object
+        #   properties:
+        #     name:
+        #       type: string
+        #       example: "P"
+        #     numberOfSpots:
+        #       type: integer
+        #       example: 1
+        #     floor:
+        #       type: integer
+        #       example: 1
+        #     startingNumber:
+        #       type: string
+        #       nullable: true
+        #       example: 1
+    ZoneCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Taxi"
+        capacity:
+          type: integer
+          example: 10
+        vehicleType:
+          type: string
+          example: "Truck"
+          nullable: true
         spot:
           type: object
           properties:
@@ -959,11 +1115,19 @@ components:
               example: 1
             floor:
               type: integer
-              example: 1
+              default: 0
+              example: 0
             startingNumber:
-              type: string
+              type: integer
               nullable: true
+              default: 1
               example: 1
+          required:
+            - name
+            - numberOfSpots
+      required:
+        - name
+        - capacity
     Lot:
       type: object
       properties:
@@ -996,7 +1160,7 @@ components:
           floor:
             type: integer
             example: 1
-          lotId:
+          zoneId:
             type: string
             example: "12345"
           number:
@@ -1006,7 +1170,11 @@ components:
             type: string
             enum: [available, occupied, reserved]
             example: "available"
-          createAt:
+          price:
+            type: number
+            format: float
+            example: 10.50 
+          createdAt:
             type: string
             format: date-time
             example: "2021-08-01T12:00:00Z"
@@ -1014,6 +1182,11 @@ components:
             type: string
             format: date-time
             example: "2021-08-01T12:00:00Z"
+          OccupationType:
+            type: string
+            enum: [NONRESERVATOIN, RESERVATION]
+            example: "RESERVATION"
+            nullable: true
     Vehicle:
       type: object
       properties:

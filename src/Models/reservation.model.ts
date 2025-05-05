@@ -3,10 +3,13 @@ import { ReserveQueryType } from "../Controllers/reservation.controller";
 import ModelError from "./ModelError";
 
 const reservationModel = {
-  async checkAvailability(lotId: string, fromTime: Date, toTime: Date) {
+  async checkAvailability(lotId: string, zoneId: string, fromTime: Date, toTime: Date) {
     const freeSpot = await db.spot.findFirst({
       where: {
-        lotId,
+        zoneId,
+        zone:{
+          lotId
+        },
         status: "Available",
       },
     });
@@ -19,7 +22,10 @@ const reservationModel = {
 
     const spot = await db.spot.findFirst({
       where: {
-        lotId: lotId,
+        zoneId,
+        zone: {
+          lotId: lotId,
+        },
         OR: [
           {
             reservations: {

@@ -18,6 +18,7 @@ const spot_1 = __importDefault(require("./Routes/spot"));
 const provider_1 = __importDefault(require("./Routes/provider"));
 const vehicle_1 = __importDefault(require("./Routes/vehicle"));
 const reservation_1 = __importDefault(require("./Routes/reservation"));
+const zone_1 = __importDefault(require("./Routes/zone"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const swaggerDocument = yaml_1.default.parse(node_fs_1.default.readFileSync(`${__dirname}/../docs/swagger.yaml`, "utf8"));
 app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocument));
@@ -28,6 +29,7 @@ app.use("/v1/auth/employees", employee_1.default);
 app.use("/v1/provider", provider_1.default);
 app.use("/v1/lots", lot_1.default);
 app.use("/v1/spots", spot_1.default);
+app.use("/v1/zones", zone_1.default);
 app.use("/v1/vehicles", vehicle_1.default);
 app.use("/v1/reservations", reservation_1.default);
 app.listen(PORT, () => {

@@ -3,29 +3,41 @@ import { nonResEntryType } from "../Controllers/entryExit.controller";
 import ModelError from "./ModelError";
 
 const entryExitModel = {
-  async findNonReservationSpot(lotId: string | undefined) {
+  async findNonReservationSpot(lotId: string | undefined, zoneId: string) {
     //TODO: test the first path
     //TODO: What should the value of the status below be??????
     const spotWithNoReservations = await db.spot.findFirst({
       where: {
-        status: "Reserved",
-        lotId,
-        reservations: {
-          none: {
-            OR: [
-              {
-                startTime: {
-                  gte: new Date(),
-                },
-              },
-              {
-                endTime: {
-                  gte: new Date(),
-                },
-              },
-            ],
-          },
+        // status: "Reserved",
+        zoneId,
+        zone: {
+          lotId,
         },
+        OR: [
+          {
+            reservations: {
+              none: {},
+            },
+          },
+          {
+            reservations: {
+              none: {
+                OR: [
+                  {
+                    startTime: {
+                      gte: new Date(),
+                    },
+                  },
+                  {
+                    endTime: {
+                      gte: new Date(),
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
       },
       select: {
         id: true,
@@ -47,35 +59,37 @@ const entryExitModel = {
     };
 
     const furthestReservationSpot = await db.$queryRaw<spot[]>`
-          WITH "furthestResOfEachSpot" AS (
-            SELECT 
-              s.id "spotId" , 
-              s.name "spotName", 
-              s.floor floor, 
-              MAX(r."startTime") "startTime" 
-            FROM "Reservation" r
-            JOIN "Spot" s ON r."spotId"=s.id 
-            WHERE
-              s."lotId" = ${lotId} 
-              r."startTime" >= ${now}
-              r."Status" != 'CANCELLED'
-            GROUP BY s.id, s.name, s.floor
-          )
-          SELECT 
-           s.id,
-           s.name,
-           s.floor,  
-           r."startTime" --to check
-          FROM "Reservation" r 
-          JOIN "Spot" s ON s.id=r."spotId"
-          WHERE 
-           "startTime" = ( 
-                 SELECT MAX("startTime") 
-                 FROM "furthestResOfEachSpot"
-           )
-          AND
-           r."startTime" >= ${now}
-        `;
+      WITH "furthestResOfEachSpot" AS (
+        SELECT 
+          s.id "spotId" , 
+          s.name "spotName", 
+          s.floor floor, 
+          MAX(r."startTime") "startTime" 
+        FROM "Reservation" r
+        JOIN "Spot" s ON r."spotId"=s.id 
+        JOIN "Zone" z ON s."zoneId"=z.id
+        WHERE
+          s."zoneId" = ${zoneId}
+          z."lotId" = ${lotId} 
+          r."startTime" >= ${now}
+          r."Status" != 'CANCELLED'
+        GROUP BY s.id, s.name, s.floor
+      )
+      SELECT 
+       s.id,
+       s.name,
+       s.floor,  
+       r."startTime" --to check
+      FROM "Reservation" r 
+      JOIN "Spot" s ON s.id=r."spotId"
+      WHERE 
+       r."startTime" = ( 
+             SELECT MAX("startTime") 
+             FROM "furthestResOfEachSpot"
+       )
+      AND
+       r."startTime" >= ${now}
+    `;
     return furthestReservationSpot[0];
   },
 
@@ -149,13 +163,25 @@ const entryExitModel = {
         licensePlate,
         status: "ACTIVE",
         spot: {
-          lotId: lotId,
+          zone: {
+            lotId: lotId,
+          },
         },
       },
       include: {
         vehicle: {
           select: {
             id: true,
+          },
+        },
+        spot: {
+          include: {
+            zone: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
       },
@@ -172,7 +198,7 @@ const entryExitModel = {
 
       },
     });
-    return ticket
+    return {ticket, reservation};
   }
 };
 

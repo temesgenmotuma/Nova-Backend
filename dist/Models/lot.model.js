@@ -4,11 +4,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = __importDefault(require("../Db/db"));
-const client_1 = require("@prisma/client");
 const lotModel = {
+    async getLotsOfCurrProvider(providerId) {
+        return await db_1.default.lot.findMany({
+            where: {
+                providerId: providerId,
+            },
+            omit: {
+                providerId: true,
+            }
+        });
+    },
     //create a lot and the spots associated with the lot
     async createLot(lot, providerId) {
-        const { name: lotName, capacity, location: { latitude, longitude }, spot: { name: spotName, numberOfSpots, floor, startingNumber }, } = lot;
+        const { name: lotName, capacity, location: { latitude, longitude },
+        // spot: { name: spotName, numberOfSpots, floor, startingNumber },
+         } = lot;
         const result = await db_1.default.$transaction(async (tx) => {
             const lot = await tx.$queryRaw `
         INSERT INTO "Lot" (id, name, "providerId", location, capacity, "updatedAt") 
@@ -22,20 +33,25 @@ const lotModel = {
         ) 
         RETURNING id;
       `;
-            const id = lot[0]?.id;
+            return lot[0];
+            /*const id = lot[0]?.id;
+      
             let spots;
             if (numberOfSpots > 0) {
-                const spotsArray = Array.from({ length: numberOfSpots }).map((_, i) => ({
-                    name: `${spotName}${startingNumber + i}`,
-                    floor: floor,
-                    status: client_1.SpotStatus.Available,
-                    lotId: id,
-                }));
-                spots = await tx.spot.createManyAndReturn({
-                    data: spotsArray,
-                });
+              const spotsArray = Array.from({ length: numberOfSpots }).map(
+                (_, i) => ({
+                  name: `${spotName}${startingNumber + i}`,
+                  floor: floor,
+                  status: SpotStatus.Available,
+                  zoneId: id,
+                })
+              );
+              spots = await tx.spot.createManyAndReturn({
+                data: spotsArray,
+              });
             }
             return spots;
+            */
         });
         return result;
     },
@@ -43,10 +59,12 @@ const lotModel = {
         //is the providerId filter redundant?
         return await db_1.default.spot.findMany({
             where: {
-                lotId: lotId,
-                lot: {
-                    providerId: provId,
-                },
+                zone: {
+                    lot: {
+                        id: lotId,
+                        providerId: provId,
+                    }
+                }
             },
         });
     },

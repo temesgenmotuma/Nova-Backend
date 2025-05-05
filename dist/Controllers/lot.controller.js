@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getNearbylots = exports.getSpotsByLot = exports.createLot = exports.createLotSchema = void 0;
+exports.getNearbylots = exports.getSpotsByLot = exports.createLot = exports.getLotsOfCurrProvider = exports.createLotSchema = void 0;
 const joi_1 = __importDefault(require("joi"));
 const zod_1 = require("zod");
 const lot_model_1 = __importDefault(require("../Models/lot.model"));
@@ -13,7 +13,7 @@ const spotSchema = joi_1.default.object({
     name: joi_1.default.string().default("P").empty(""),
     floor: joi_1.default.number().integer().empty("").optional(),
 });
-//numberOfSpots < capacity
+//TODO: numberOfSpots < capacity
 exports.createLotSchema = joi_1.default.object({
     name: joi_1.default.string().required(),
     capacity: joi_1.default.number().required(),
@@ -26,7 +26,7 @@ exports.createLotSchema = joi_1.default.object({
     //   city: joi.string(),
     //   woreda: joi.string(),
     // }),
-    spot: joi_1.default.alternatives().try(spotSchema).default({}).optional(),
+    // spot: joi.alternatives().try(spotSchema).default({}).optional(),
 });
 const nearbyLotsQuerySchema = zod_1.z.object({
     location: zod_1.z.object({
@@ -35,6 +35,18 @@ const nearbyLotsQuerySchema = zod_1.z.object({
     }),
     radius: zod_1.z.coerce.number(),
 });
+const getLotsOfCurrProvider = async (req, res) => {
+    const providerId = req.user?.providerId;
+    try {
+        const lots = await lot_model_1.default.getLotsOfCurrProvider(providerId);
+        res.status(200).json(lots);
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error fetching lots" });
+    }
+};
+exports.getLotsOfCurrProvider = getLotsOfCurrProvider;
 const createLot = async (req, res) => {
     const providerId = req.user?.providerId;
     const { value, error } = exports.createLotSchema.validate(req.body);

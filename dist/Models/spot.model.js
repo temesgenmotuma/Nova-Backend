@@ -6,26 +6,36 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = __importDefault(require("../Db/db"));
 const ModelError_1 = __importDefault(require("./ModelError"));
 const spotModel = {
-    async createSpot(name, number, floor, startingNumber, lotId) {
-        const lot = await db_1.default.lot.findUnique({
+    async createSpot(name, number, floor, startingNumber, zoneId) {
+        const zone = await db_1.default.zone.findUnique({
             where: {
-                id: lotId,
+                id: zoneId,
             },
             select: {
-                capacity: true,
-            },
+                totalNumberOfSpots: true,
+                _count: {
+                    select: {
+                        spots: true
+                    }
+                }
+            }
         });
-        if (lot && (lot?.capacity < startingNumber + number - 1)) {
+        if (!zone) {
+            throw new ModelError_1.default("Zone not found", 404);
+        }
+        const numberOfCreatedSpots = zone?._count.spots;
+        const { totalNumberOfSpots } = zone;
+        if (number > (totalNumberOfSpots - numberOfCreatedSpots)) {
             throw new ModelError_1.default("Capacity Exceeded", 400);
         }
         return await db_1.default.$queryRaw `
-      INSERT INTO "Spot" (id, name, floor, status, "lotId", "createdAt", "updatedAt")
+      INSERT INTO "Spot" (id, name, floor, status, "zoneId", "createdAt", "updatedAt")
         SELECT 
-          gen_random_uuid(), 
+          gen_random_uuid(),
           CONCAT(${name}::text, n) AS name,
           ${floor}::int,
           'Available'::"SpotStatus", 
-          ${lotId},
+          ${zoneId},
           NOW(),
           NOW()
         FROM generate_series(COALESCE(${startingNumber}, 1)::int, ${startingNumber + number - 1}::int) AS n

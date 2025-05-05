@@ -25,13 +25,24 @@ interface createLot {
 }
 
 const lotModel = {
+  async getLotsOfCurrProvider(providerId: string) {
+    return await db.lot.findMany({
+      where: {
+        providerId: providerId,
+      },
+      omit:{
+        providerId: true,
+      }
+    });
+  },
+
   //create a lot and the spots associated with the lot
   async createLot(lot: createLot, providerId: string) {
     const {
       name: lotName,
       capacity,
       location: { latitude, longitude },
-      spot: { name: spotName, numberOfSpots, floor, startingNumber },
+      // spot: { name: spotName, numberOfSpots, floor, startingNumber },
     } = lot;
 
     const result = await db.$transaction(async (tx) => {
@@ -47,7 +58,8 @@ const lotModel = {
         ) 
         RETURNING id;
       `;
-      const id = lot[0]?.id;
+      return lot[0];
+      /*const id = lot[0]?.id;
 
       let spots;
       if (numberOfSpots > 0) {
@@ -56,14 +68,15 @@ const lotModel = {
             name: `${spotName}${startingNumber + i}`,
             floor: floor,
             status: SpotStatus.Available,
-            lotId: id,
+            zoneId: id,
           })
         );
         spots = await tx.spot.createManyAndReturn({
           data: spotsArray,
         });
       }
-      return spots;
+      return spots; 
+      */
     });
 
     return result;
@@ -73,10 +86,12 @@ const lotModel = {
     //is the providerId filter redundant?
     return await db.spot.findMany({
       where: {
-        lotId: lotId,
-        lot: {
-          providerId: provId,
-        },
+        zone:{
+          lot:{
+            id: lotId,
+            providerId: provId,
+          }          
+        }
       },
     });
   },

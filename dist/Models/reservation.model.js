@@ -6,10 +6,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = __importDefault(require("../Db/db"));
 const ModelError_1 = __importDefault(require("./ModelError"));
 const reservationModel = {
-    async checkAvailability(lotId, fromTime, toTime) {
+    async checkAvailability(lotId, zoneId, fromTime, toTime) {
         const freeSpot = await db_1.default.spot.findFirst({
             where: {
-                lotId,
+                zoneId,
+                zone: {
+                    lotId
+                },
                 status: "Available",
             },
         });
@@ -20,7 +23,10 @@ const reservationModel = {
         const toDateTime = new Date(toTime).toISOString();
         const spot = await db_1.default.spot.findFirst({
             where: {
-                lotId: lotId,
+                zoneId,
+                zone: {
+                    lotId: lotId,
+                },
                 OR: [
                     {
                         reservations: {

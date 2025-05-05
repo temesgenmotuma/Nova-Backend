@@ -10,7 +10,7 @@ const spotSchema = joi.object({
     floor: joi.number().integer().empty("").optional(),
 });
 
-//numberOfSpots < capacity
+//TODO: numberOfSpots < capacity
 export const createLotSchema = joi.object({
   name: joi.string().required(),
   capacity: joi.number().required(),
@@ -23,7 +23,7 @@ export const createLotSchema = joi.object({
   //   city: joi.string(),
   //   woreda: joi.string(),
   // }),
-  spot: joi.alternatives().try(spotSchema).default({}).optional(),
+  // spot: joi.alternatives().try(spotSchema).default({}).optional(),
 });
 
 const nearbyLotsQuerySchema = z.object({
@@ -35,8 +35,20 @@ const nearbyLotsQuerySchema = z.object({
 });
 
 export type nearbyLotsQueryType = z.infer<typeof nearbyLotsQuerySchema>;
+
+export const getLotsOfCurrProvider = async (req: Request, res: Response) => {
+  const providerId = req.user?.providerId!;
+  try {
+    const lots = await lotModel.getLotsOfCurrProvider(providerId);
+    res.status(200).json(lots);    
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching lots" });
+  }
+};
+
 export const createLot = async (req: Request, res: Response) => {
-  const providerId = req.user?.providerId as string;
+  const providerId = req.user?.providerId!;
   const { value, error } = createLotSchema.validate(req.body);
   if (error) {
     res.status(400).json({ error: error.details[0].message });

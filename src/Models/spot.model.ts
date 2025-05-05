@@ -7,30 +7,41 @@ const spotModel = {
     number: number,
     floor: number,
     startingNumber: number,
-    lotId: string
+    zoneId: string
   ) {
-
-    const lot = await db.lot.findUnique({
-      where: {
-        id: lotId,
+    const zone = await db.zone.findUnique({
+      where:{
+        id: zoneId,
       },
-      select: {
-        capacity: true,
-      },
+      select:{
+        totalNumberOfSpots:true,
+        _count:{
+          select:{
+            spots:true
+          }
+        }
+      }
     });
 
-    if (lot && (lot?.capacity < startingNumber + number - 1)) {
+    if(!zone){
+      throw new ModelError("Zone not found", 404);
+    }
+
+    const numberOfCreatedSpots = zone?._count.spots ;
+    const {totalNumberOfSpots} = zone;
+
+    if (number > (totalNumberOfSpots - numberOfCreatedSpots)){
       throw new ModelError("Capacity Exceeded", 400);
     }
   
     return await db.$queryRaw`
-      INSERT INTO "Spot" (id, name, floor, status, "lotId", "createdAt", "updatedAt")
+      INSERT INTO "Spot" (id, name, floor, status, "zoneId", "createdAt", "updatedAt")
         SELECT 
-          gen_random_uuid(), 
+          gen_random_uuid(),
           CONCAT(${name}::text, n) AS name,
           ${floor}::int,
           'Available'::"SpotStatus", 
-          ${lotId},
+          ${zoneId},
           NOW(),
           NOW()
         FROM generate_series(COALESCE(${startingNumber}, 1)::int, ${

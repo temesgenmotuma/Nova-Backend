@@ -14,6 +14,7 @@ const baseNonResEntrySchema = zod_1.z.object({
         .string()
         .regex(/^\d{1,3}(AA|ET|UN|AU|AF|AM|BG|DR|GM|HR|OR|SM|CD|AO)([A-C]\d{5}|\d{5}|\d{4})$/),
     lotId: zod_1.z.string().uuid().optional(),
+    zoneId: zod_1.z.string().uuid(),
     vehicle: zod_1.z
         .object({
         make: zod_1.z.string(),
@@ -41,7 +42,7 @@ const nonReservationEntry = async (req, res) => {
     }
     try {
         // The attendent assigns spot
-        const spot = await entryExit_model_1.default.findNonReservationSpot(lotId);
+        const spot = await entryExit_model_1.default.findNonReservationSpot(lotId, result.data.zoneId);
         if (!spot) {
             res.status(404).json({ message: "No free spot found in this parking lot." });
             return;
