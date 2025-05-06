@@ -30,6 +30,13 @@ const resEntrySchema = z.object({
   lotId: z.string().uuid().optional(),
 });
 
+const nonResExitSchema = z.object({
+  phoneNumber: z.string().regex(/^(09\d{8}|07\d{8}|\+2519\d{8})$/),
+});
+
+const resExitSchema = z.object({
+  phoneNumber: z.string().regex(/^(09\d{8}|07\d{8}|\+2519\d{8})$/),
+});
 /* const nonResEntrySchema = baseNonResEntrySchema.refine(
   (data) => new Date(data.entryTime) >= new Date(),
   {
@@ -74,7 +81,23 @@ export const nonReservationEntry = async (req: Request, res: Response) => {
 };
 
 export const nonReservationExit = async (req:Request, res:Response) => {
-
+  const result = nonResExitSchema.safeParse(req.body);
+  const lotId = req.user?.lotId!;
+  if(!result.success){
+    res.status(400).json({message: "Invalid request", error: result.error.flatten().fieldErrors});
+    return;
+  }
+  try {
+    await ticketModel.nonReservationExit(lotId, result.data.phoneNumber);
+    res.status(204).json({message: "Exit successful"});
+  } catch (error) {
+    console.error(error);
+    if (error instanceof ModelError) {
+      res.status(error.statusCode).json({ message: error.message });
+      return;
+    }
+    res.status(500).json({ message: "Internal server error", error: (error as Error).message,});
+  }
 };
 
 export const reservationEntry = async (req: Request, res: Response) => {
@@ -97,6 +120,21 @@ export const reservationEntry = async (req: Request, res: Response) => {
       res.status(error.statusCode).json({message: error.message});
       return;
     }
+    console.error(error);
+    res.status(500).json({  message: "Internal server error",  error: (error as Error).message,});
+  }
+};
+
+export const reservationExit = async (req: Request, res: Response) => {
+  const result = resExitSchema.safeParse(req.body);
+  const lotId = req.user?.lotId!;
+  if(!result.success){
+    res.status(400).json({message: "Invalid request", error: result.error.flatten().fieldErrors});
+    return;
+  }
+  try {
+    await ticketModel.reservationExit(lotId, result.data.phoneNumber);
+  } catch (error) {
     console.error(error);
     res.status(500).json({  message: "Internal server error",  error: (error as Error).message,});
   }
