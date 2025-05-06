@@ -95,7 +95,7 @@ const entryExitModel = {
 
   async nonReservationEntry( spotId: string, lotId: string | undefined, reqObj: nonResEntryType) {
     const { licensePlate, phoneNumber, vehicle } = reqObj;
-    //TODO: There should be some check on the time that has passed since the reservation start time.
+    //TODO:There should be some check on the time that has passed since the reservation start time.
     //TODO:Should license plate filter be here??
     const activeTicket = await db.entryTicket.findFirst({
       where: {
@@ -153,8 +153,48 @@ const entryExitModel = {
     return ticket;
   },
 
-  async nonReservationExit(){
-
+  async nonReservationExit( lotId: string, phone: string){
+    //check if an active ticket exists
+    const ticket = await db.entryTicket.findFirst({
+      where: {
+        phoneNumber: phone,
+        status: "ACTIVE",
+        spot:{
+          zone:{
+            lot:{
+              id: lotId,
+            },
+          },
+        }
+      },
+    });
+    if(!ticket) throw new ModelError("Ticket not found", 404);
+    // if(!ticket.isPaid) throw new ModelError("Payment not done", 403);
+    
+    //update spot status
+    //update ticket status
+    return await db.$transaction([
+      db.spot.update({
+        where: {
+          id: ticket.spotId,
+        },
+        data: {
+          status: "Available",
+          occupationType: null,
+        },
+      }),
+      db.entryTicket.update({
+        where: {
+          id: ticket.id,
+        },
+        data: {
+          exitTime: new Date(),
+          status: "COMPLETED",
+        },
+      }),
+      //calculate the price
+      //make sure payment is done 
+    ]);
   },
 
   async reservationEntry(licensePlate: string, phone:string, lotId: string) {
@@ -198,8 +238,61 @@ const entryExitModel = {
 
       },
     });
-    return {ticket, reservation};
-  }
+    return ticket
+  },
+
+  async reservationExit(lotId: string, phone: string) {
+    //make sure we are not past the reservation end time(some grace time)
+    const ticket = await db.entryTicket.findMany({
+      where: {
+        phoneNumber: phone,
+        status: "ACTIVE",
+        spot: {
+          zone: {
+            lot: {
+              id: lotId,
+            },
+          },
+        },
+      },
+      include: {
+        vehicle: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+    if (ticket.length === 0) throw new ModelError("Ticket not found", 404);
+    if (ticket.length > 1)
+      throw new ModelError(
+        "Internal server error: More than 1 ticket for one phone",
+        500
+      );
+
+    await db.entryTicket.updateMany({
+      where: {
+        phoneNumber: phone,
+      },
+      data: {
+        status: "COMPLETED",
+      },
+    });
+
+
+    //update reservation status
+    await db.reservation.update({
+      where:{
+        id: ticket[0].vehicle.id,
+      },
+      data: {
+        status: "COMPLETE",
+      }
+    })
+    //check if an active ticket exists
+    //update the ticket
+    //update the spot
+  },
 };
 
 export default entryExitModel;
