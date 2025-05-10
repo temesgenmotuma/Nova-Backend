@@ -109,6 +109,24 @@ const lotModel = {
       )  
     `;
   },
+
+  async getZonesByLot(lotId: string) {
+    return await db.zone.findMany({
+      where: {
+        lotId: lotId,
+        deletedAt: null,
+      },
+      // include: {
+      //   spots: {
+      //     select: {
+      //       id: true,
+      //       name: true,
+      //       floor: true,
+      //     },
+      //   },
+      // },
+    });
+  }
 };
 
 

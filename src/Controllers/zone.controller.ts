@@ -29,6 +29,8 @@ const createZoneSchema = z
     }
   );
 
+const uuid = z.string().uuid();
+
 const uuidSchema = z.string().uuid();
 
 export type zoneCreateSpot = z.infer<typeof createZoneSchema>["spot"];
@@ -53,6 +55,21 @@ export const createZone = async (req: Request, res: Response) => {
     res.status(201).json({zone});
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Internal server error", error: (error as Error).message });
+  }
+};
+
+export const getSpotsOfZone = async (req: Request, res: Response) => {
+  const parsedZoneId = uuidSchema.safeParse(req.params.zoneId);
+  if (!parsedZoneId.success) {
+    res.status(400).json({ message: "Missing or Invalid id" });
+    return;
+  }
+  try {
+    const spots = await zoneModel.getSpotsOfZone(parsedZoneId.data);
+    res.json(spots);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error", error: (error as Error).message,});
   }
 };

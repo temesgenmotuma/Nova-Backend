@@ -1,5 +1,5 @@
 import db from "../Db/db";
-import { zoneCreateSpot } from "../Controllers/zone.controller";
+import { getSpotsOfZone, zoneCreateSpot } from "../Controllers/zone.controller";
 import { Prisma } from "@prisma/client";
 type SpotCreateManyZoneInput = Prisma.SpotCreateManyZoneInput;
 
@@ -43,6 +43,14 @@ const zoneModel = {
       },
     });
     return zone;
+  },
+
+  async getSpotsOfZone(zoneId: string) {
+    return await db.spot.findMany({
+      where: {
+        zoneId: zoneId,
+      },
+    });
   },
 };
 

@@ -34,6 +34,8 @@ const nearbyLotsQuerySchema = z.object({
   radius: z.coerce.number(),
 });
 
+const uuidSchema = z.string().uuid();
+
 export type nearbyLotsQueryType = z.infer<typeof nearbyLotsQuerySchema>;
 
 export const getLotsOfCurrProvider = async (req: Request, res: Response) => {
@@ -94,3 +96,19 @@ export const getNearbylots = async (req: Request, res: Response) => {
     res.status(500).json({message: "Error fetching nearby parking lots.", error: (error as Error).message});
   }
 };
+
+export const getZonesByLot = async (req: Request, res: Response) => {
+  const parsedLotId = uuidSchema.safeParse(req.params.lotId);
+  if (!parsedLotId.success) {
+    res.status(400).json({ message: "Missing or Invalid lotId" });
+    return;
+  }
+  const lotId = parsedLotId.data;
+  try {
+    const zones = await lotModel.getZonesByLot(lotId);
+    res.status(200).json(zones);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching zones" });
+  }
+}
