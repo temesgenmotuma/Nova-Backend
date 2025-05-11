@@ -1,5 +1,4 @@
 import * as express from 'express';
-import { Customer } from '@prisma/client'; 
 
 type employeePayload = {
     provider: {

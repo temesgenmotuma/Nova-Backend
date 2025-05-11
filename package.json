@@ -24,6 +24,7 @@
     "jsonwebtoken": "^9.0.2",
     "mailgun.js": "^11.1.0",
     "mailtrap": "^3.4.0",
+    "node-cron": "^4.0.0",
     "swagger-ui-express": "^5.0.1",
     "yaml": "^2.7.0",
     "zod": "^3.24.2"
@@ -38,7 +39,6 @@
     "nodemon": "^3.1.9",
     "prisma": "^6.3.1",
     "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3"
   }
 }

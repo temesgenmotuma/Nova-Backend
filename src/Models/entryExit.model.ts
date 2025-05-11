@@ -6,13 +6,14 @@ const entryExitModel = {
   async findNonReservationSpot(lotId: string | undefined, zoneId: string) {
     //TODO: test the first path
     //TODO: What should the value of the status below be??????
+    //add status: not occupied
     const spotWithNoReservations = await db.spot.findFirst({
       where: {
         // status: "Reserved",
         zoneId,
-        zone: {
-          lotId,
-        },
+        // zone: {
+        //   lotId,
+        // },
         OR: [
           {
             reservations: {
@@ -168,7 +169,7 @@ const entryExitModel = {
         }
       },
     });
-    if(!ticket) throw new ModelError("Ticket not found", 404);
+    if(!ticket) throw new ModelError("No active ticket found", 404);
     // if(!ticket.isPaid) throw new ModelError("Payment not done", 403);
     
     //update spot status
@@ -235,7 +236,6 @@ const entryExitModel = {
         licensePlate: reservation.licensePlate,
         phoneNumber: phone,
         vehicleId: reservation.vehicle.id,
-
       },
     });
     return ticket
@@ -276,6 +276,7 @@ const entryExitModel = {
       },
       data: {
         status: "COMPLETED",
+        exitTime: new Date(),
       },
     });
 

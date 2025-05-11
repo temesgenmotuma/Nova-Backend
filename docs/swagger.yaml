@@ -95,11 +95,11 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: custone@abc.com
+                  example: custone@gmail.com
                 password:
                   type: string
                   format: password
-                  example: "custone12345"
+                  example: "12345678"
       responses:
         "200":
           description: Successfully logged in
@@ -212,6 +212,12 @@ paths:
                   type: string
                   enum: [admin, valet]
                   example: "admin"
+                lot:
+                  type: string
+                  format: uuid
+              required:
+                - email
+                - role
       responses:
         "200":
           description: Successfully invited employee
@@ -274,7 +280,7 @@ paths:
           $ref: "#/components/responses/409"
         "500":
           $ref: "#/components/responses/500"
-  /auth/employees/employees/send-reset:
+  /auth/employees/send-reset:
     post:
       tags:
         - provider
@@ -308,7 +314,7 @@ paths:
         "500":
           $ref: "#/components/responses/500"
 
- #Provider Endpoints 
+# Provider Endpoints 
   /provider/{provId}/lots:
     get:
       deprecated: true
@@ -462,7 +468,7 @@ paths:
           $ref: "#/components/responses/500"
   
 # Zone Endpoints
-  # TODO: Below EndPts: Yet to be implemented - High priority
+# TODO: get EndPt: Yet to be implemented - High priority
   /lots/{lotId}/zones:
     get:
       tags:
@@ -488,6 +494,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Lot"
+        "400":
+          $ref: "#/components/responses/400"
         "404":
           $ref: "#/components/responses/404"
         "500":
@@ -648,7 +656,7 @@ paths:
           $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
-  # TODO: Below EndPts: Yet to be implemented - High priority
+# TODO: Below EndPts: Yet to be implemented - High priority
   /zones/{zoneId}/spots:
     get:
       tags:
@@ -674,8 +682,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Spot"
-        "404":
-          $ref: "#/components/responses/404"
+        "400":
+          $ref: "#/components/responses/400"
         "500":
           $ref: "#/components/responses/500"
 
@@ -758,6 +766,37 @@ paths:
           $ref: "#/components/responses/404"  
         "500":
           $ref: "#/components/responses/500" 
+#TODO: Test this 
+  /vehicles/{vehicleId}/reservations:
+    get:
+      tags:
+        - reservation
+      security:
+        - BearerAuth: []
+      summary: Get all reservations for a vehicle
+      description: Returns all reservations for a vehicle.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: vehicleId
+          description: The ID of the vehicle
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Successfully retrieved reservations for the vehicle
+          content:
+            application/json:
+              schema:
+                type: array
+                # items:
+                  # $ref: "#/components/schemas/Reservation"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
 
 # Vehicle Endpoints
   /vehicles:
@@ -790,12 +829,6 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/XClientType"
-        - in: path
-          name: customerId
-          required: true
-          schema:
-            type: string
-            format: uuid
       summary: Create a new vehicle
       description: Creates a new vehicle for a customer.
       requestBody:
@@ -904,6 +937,12 @@ paths:
             schema:
               type: object
               properties:
+                zoneId:
+                  type: string
+                  format: uuid
+                # lotId: 
+                #   type: string
+                #   format: uuid
                 phoneNumber:
                   type: string
                   example: 0912131415
@@ -933,6 +972,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EntryResponse"
+        "409":
+          $ref: "#/components/responses/409"
         "400":
           $ref: "#/components/responses/400"
         "404":

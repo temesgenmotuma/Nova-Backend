@@ -36,6 +36,11 @@ const employeeLoginSchema = joi.object({
 const inviteEmployeeSchema = joi.object({
   email: joi.string().email().required(),
   role: joi.string().valid("Admin", "Valet").required(),
+  lot: joi.when('role', {
+    is: 'Admin',
+    then: joi.optional(),
+    otherwise: joi.string().uuid().required(),
+  })
 });
 
 const createEmployeeSchema = joi.object({
@@ -163,9 +168,9 @@ export const inviteEmployee = async (req: Request, res: Response) => {
     res.status(400).json({ error: error.details[0].message });
     return;
   }
-  const providerId = req.user?.providerId as string;
+  const providerId = req.user?.providerId!;
   try {
-    const { email, role } = value;
+    const { email, role, lot } = value;
     //dont allow adding employee who already works for another provider
 
     //db wide check or just provider check?
@@ -181,7 +186,7 @@ export const inviteEmployee = async (req: Request, res: Response) => {
     
     //do i need to check if an unexpired inivitation already exists?
 
-    await employeeModel.createInvitation(email, role, providerId);
+    await employeeModel.createInvitation(email, role, providerId, lot);
 
     //TODO: add correct email template
     await sendEmail(email);
@@ -199,6 +204,10 @@ export const createEmployee = async (req: Request, res: Response) => {
     return;
   }
 
+  if(!req.query.token){
+    res.status(400).json({ message: "Token not provided."});
+    return;
+  }
   const token = req.query.token as string;
   try {
     const invitation = await employeeModel.getInvitation(token);

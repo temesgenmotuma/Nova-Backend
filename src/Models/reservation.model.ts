@@ -147,6 +147,56 @@ const reservationModel = {
       },
     });
   },
+
+  async softDeleteExpiredReservations() {
+    await db.reservation.updateMany({
+      where: {
+        endTime: {
+          lt: new Date(),
+        },
+        status: "ACTIVE",
+      },
+      data: {
+        status: "COMPLETE",
+      },
+    });
+
+    await db.spot.updateMany({
+      where: {
+        status: {
+          not: "Occupied",
+        },
+        reservations: {
+          every: {
+            endTime: {
+              lt: new Date(),
+            },
+            status: {
+              not: "CANCELLED",
+            },
+          },
+        },
+      },
+      data: {
+        status: "Available",
+        occupationType: null,
+      },
+    });
+
+    await db.entryTicket.updateMany({
+      where:{
+        spot:{
+          occupationType: "RESERVATION",
+        },
+        exitTime: {
+          not: null,
+        }
+      },
+      data:{
+        status: "COMPLETED",
+      },
+    });
+  },
 };
 
 export default reservationModel;

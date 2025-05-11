@@ -55,10 +55,10 @@ export const nonReservationEntry = async (req: Request, res: Response) => {
     return;
   }
   const lotId  = req.user?.lotId || result.data.lotId;
-  if(!req.user?.lotId && !result.data.lotId){
+ /*  if(!req.user?.lotId && !result.data.lotId){
     res.status(400).json({message: "lotId is required"});
     return;
-  }
+  } */
 
   try {
     // The attendent assigns spot

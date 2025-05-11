@@ -7,4 +7,5 @@ const router = Router();
 router.post("", protect, reserve);
 router.delete("/:id", protect, cancelReservation);
 
+
 export default router;

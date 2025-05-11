@@ -63,7 +63,7 @@ model Invitation {
   id        String   @id @default(uuid())
   email     String
   role      Role
-  token     String
+  token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
 
@@ -153,7 +153,7 @@ model Vehicle {
   customer   Customer? @relation(fields: [customerId], references: [id])
 
   // should this be one to one
-  entryTickets EntryTicket?
+  entryTickets EntryTicket[]
   reservations Reservation[]
   valetTickets ValetTicket[]
 }
@@ -197,7 +197,7 @@ model EntryTicket {
   spotId String
   spot   Spot   @relation(fields: [spotId], references: [id])
 
-  vehicleId String  @unique
+  vehicleId String 
   vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
 }
 

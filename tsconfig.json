@@ -7,12 +7,14 @@
     "allowJs": true,
     "sourceMap": true,
     "baseUrl": "src",
+    "types": ["node", "express"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "moduleResolution": "node16",
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "typeRoots": ["./node_modules/@types", "./src/types/"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/types/types.d.ts"],
   "exclude": ["node_modules"]
 }

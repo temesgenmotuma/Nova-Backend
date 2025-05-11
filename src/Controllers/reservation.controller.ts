@@ -78,7 +78,7 @@ export const reserve = async (req: Request, res: Response) => {
     }
   }
 
-  export const getReservations = async (req: Request, res: Response) => {
+  export const getReservationsByVehicle = async (req: Request, res: Response) => {
     const customerId = req?.user?.id as string;
     const {id} = req.params;
     if(!id){

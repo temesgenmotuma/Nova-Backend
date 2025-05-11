@@ -73,7 +73,7 @@ export default async function protect(
         email: user?.email,
       };
     } else {
-      console.error("Invalid client-type header provided.");
+      console.error("Invalid or no client-type header provided.");
       res.status(401).json({ message: "Invalid or no client-type header provided." });
       return;
     }
