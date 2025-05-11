@@ -19,19 +19,19 @@ import { createValetTicket } from "../Controllers/valet.controller";
 
 const router = Router();
 
-router.post("/entry/walk-in", protect, nonReservationEntry);
-router.post("/entry/reservation", protect, reservationEntry);
-router.patch("/exit/walk-in", protect, nonReservationExit);
-router.patch("/exit/reservation", protect, reservationExit);
+router.post("/entry/walk-in", protect(["provider"]), nonReservationEntry);
+router.post("/entry/reservation", protect(["provider"]), reservationEntry);
+router.patch("/exit/walk-in", protect(["provider"]), nonReservationExit);
+router.patch("/exit/reservation", protect(["provider"]), reservationExit);
 
-router.post("/valet-ticket", protect, createValetTicket);
+router.post("/valet-ticket", protect(["provider"]), createValetTicket);
 
-router.get("", protect, getVehicles);
-router.post("", protect, createVehicle);
+router.get("", protect(["customer"]), getVehicles);
+router.post("", protect(["customer"]), createVehicle);
 
-router.get("/:vehicleId/reservations", protect, getReservationsByVehicle);
+router.get("/:vehicleId/reservations", protect(["customer"]), getReservationsByVehicle);
 
-router.get("/:vehicleId", protect, getVehicle);
-router.delete("/:vehicleId", protect, deleteVehicle);
+router.get("/:vehicleId", protect(["customer"]), getVehicle);
+router.delete("/:vehicleId", protect(["customer"]), deleteVehicle);
 
 export default router;
