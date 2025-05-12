@@ -12,14 +12,14 @@ import { createZone } from "../Controllers/zone.controller";
 
 const router = express.Router();
 
-router.get("/", protect, getLotsOfCurrProvider);
-router.post("/", protect, createLot);
-router.get("/nearby", protect, getNearbylots)
+router.get("/", protect(["provider"]), getLotsOfCurrProvider);
+router.post("/", protect(["provider"]), createLot);
+router.get("/nearby", protect(["customer"]), getNearbylots)
 
-router.get("/:lotId/spots", protect, getSpotsByLot);
+router.get("/:lotId/spots", protect(["provider"]), getSpotsByLot);
 
-router.post("/:lotId/zones", protect, createZone);
-router.get("/:lotId/zones", protect, getZonesByLot);
+router.post("/:lotId/zones", protect(["provider"]), createZone);
+router.get("/:lotId/zones", protect(["provider"]), getZonesByLot);
 
 
 export default router;

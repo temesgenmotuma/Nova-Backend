@@ -8,9 +8,9 @@ import protect from "../Middleware/supabaseAuthMiddleware";
 
 const router = express.Router();
 
-router.post("/", protect, createSpot);
-router.get("/:id", protect, getSpot);
-router.patch("/:id", protect, updateSpot); //Remember to protect this routes
+router.post("/", protect(["provider"]), createSpot);
+router.get("/:id", protect(["provider"]), getSpot);
+router.patch("/:id", protect(["provider"]), updateSpot); //Remember to protect this routes
 
 
 

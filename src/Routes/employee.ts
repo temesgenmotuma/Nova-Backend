@@ -13,7 +13,7 @@ import {
 const router = express.Router();
 router.post("/register", createProvider);
 router.post("/login", login);
-router.post("/invite", protect, inviteEmployee);
+router.post("/invite", protect(["provider"]), inviteEmployee);
 router.post("/send-reset", sendResetEmail);
 router.post("", createEmployee);
 

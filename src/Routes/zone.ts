@@ -4,7 +4,7 @@ import protect from "../Middleware/supabaseAuthMiddleware";
 
 const router = Router();
 
-router.get("/:zoneId/spots", protect, getSpotsOfZone);
+router.get("/:zoneId/spots", protect(["provider"]), getSpotsOfZone);
 
 
 export default router;
