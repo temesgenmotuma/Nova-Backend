@@ -736,6 +736,92 @@ paths:
           $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
+    get:
+      x-client-type: "web"
+      tags:
+        - reservation
+      security:
+        - BearerAuth: []
+      summary: Get all reservations
+      description: Returns all reservations.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        # - in: query
+        #   name: on 
+        #   description: Criteria to filter reservations
+        #   required: false
+        #   schema:
+        #     type: string
+        #     enum: [lot]
+        # - in: query
+        #   name: value
+        #   description: Search string
+        #   required: false
+        #   schema:
+        #     type: string
+        #     format: uuid
+        - in: query
+          name: status
+          description: Status of the reservation
+          required: false
+          schema:
+            type: string
+            enum: [active, cancelled, complete]
+        - in: query
+          name: from
+          description: From time
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: "2025-05-17T12:00:00Z"
+        - in: query
+          name: to
+          description: To time
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: "2025-05-20T13:00:00Z"
+        - in: query
+          name: lotId
+          description: The ID of the parking lot
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: zoneId
+          description: The ID of the zone
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: limit
+          description: The number of reservations to return
+          required: false
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: offset
+          description: The number of reservations to skip
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Successfully retrieved reservations
+          content:
+            application/json:
+              schema: 
+                $ref: "#/components/schemas/ReservationFetchResponse"  
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
   /reservations/{id}:  
     delete:
       tags:
@@ -1248,7 +1334,7 @@ components:
       type: object
       properties:
         employee: 
-           $ref: "#/components/schemas/Employee"
+          $ref: "#/components/schemas/Employee"
         provider:
           $ref: "#/components/schemas/Provider"
     ProviderRegisterResponse:
@@ -1420,6 +1506,49 @@ components:
         deletedAt:
           type: string
           format: date-time
+    Reservation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        spotId:
+          type: string
+          format: uuid
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        licensePlate:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [COMPLETE, ACTIVE, CANCELLED]
+    ReservationFetchResponse:
+      type: object
+      properties:
+        count: 
+          type: integer
+          example: 10
+        reservations:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/Reservation"
+              - type: object
+                properties:
+                  vehicle:
+                    $ref: "#/components/schemas/Vehicle"
+                  spot: 
+                    $ref: "#/components/schemas/Spot"
     EntryTicket:
       type: object
       properties:

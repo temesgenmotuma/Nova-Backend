@@ -1,14 +1,23 @@
 import db from "../Db/db";
-import { ReserveQueryType } from "../Controllers/reservation.controller";
+import {
+  getReservations,
+  ReserveQueryType,
+} from "../Controllers/reservation.controller";
 import ModelError from "./ModelError";
+import { start } from "repl";
 
 const reservationModel = {
-  async checkAvailability(lotId: string, zoneId: string, fromTime: Date, toTime: Date) {
+  async checkAvailability(
+    lotId: string,
+    zoneId: string,
+    fromTime: Date,
+    toTime: Date
+  ) {
     const freeSpot = await db.spot.findFirst({
       where: {
         zoneId,
-        zone:{
-          lotId
+        zone: {
+          lotId,
         },
         status: "Available",
       },
@@ -82,18 +91,18 @@ const reservationModel = {
 
       //create a reservation record and update the status in spot to reserved
       const vehicle = await tx.vehicle.findUnique({
-        where:{
+        where: {
           id: reservation.vehicleId,
           deletedAt: null,
         },
-        select:{
-          licensePlateNumber: true
-        }
+        select: {
+          licensePlateNumber: true,
+        },
       });
-      if(!vehicle){
+      if (!vehicle) {
         throw new ModelError("Vehicle not found", 404);
       }
-      
+
       return await tx.spot.update({
         where: {
           id: spotId,
@@ -114,6 +123,105 @@ const reservationModel = {
       });
     });
     return result;
+  },
+
+  async getReservations(
+    providerId: string,
+    lotId: string | undefined,
+    zoneId: string | undefined,
+    from: Date | undefined,
+    to: Date | undefined,
+    status: string | undefined,
+    limit: number,
+    offset: number
+  ) {
+
+    const fromDate = from ? new Date(from).toISOString() : undefined;
+    const toDate = to ? new Date(to).toISOString() : undefined;
+    
+    let query: any = {};
+    if (from && !toDate) {
+      query.endTime = {
+        gt: fromDate,
+      };
+    }
+    if (toDate && !fromDate) {
+      query.startTime = {
+        lt: toDate,
+      };
+    }
+    if (fromDate && toDate) {
+      query.OR = [
+        {
+          startTime: {
+            gte: fromDate,
+            lte: toDate,
+          },
+        },
+        {
+          endTime: {
+            gte: fromDate,
+            lte: toDate,
+          },
+        },
+      ];
+    }
+
+    const whereFilter = {
+      spot: {
+        ...(zoneId && { zoneId: zoneId }),
+        zone: {
+          ...(lotId && { lotId: lotId }),
+          lot: {
+            providerId: providerId,
+          },
+        },
+      },
+      ...(status && { status: status }),
+      ...query,
+    };
+
+    const [reservations, count] = await Promise.all([
+      await db.reservation.findMany({
+        where: whereFilter,
+        take: limit,
+        skip: offset,
+        orderBy: {
+          startTime: "asc",
+        },
+        include: {
+          spot: {
+            select: {
+              id: true,
+              name: true,
+              floor: true,
+              status: true,
+            },
+          },
+          vehicle: {
+            select: {
+              id: true,
+              make: true,
+              model: true,
+              color: true,
+              licensePlateNumber: true,
+              customer: {
+                select: {
+                  id: true,
+                  email: true,
+                  username: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      await db.reservation.count({
+        where: whereFilter,
+      }),
+    ]);
+
+    return {count, reservations};
   },
 
   async cancelReservation(reservationId: string) {
@@ -184,15 +292,15 @@ const reservationModel = {
     });
 
     await db.entryTicket.updateMany({
-      where:{
-        spot:{
+      where: {
+        spot: {
           occupationType: "RESERVATION",
         },
         exitTime: {
           not: null,
-        }
+        },
       },
-      data:{
+      data: {
         status: "COMPLETED",
       },
     });

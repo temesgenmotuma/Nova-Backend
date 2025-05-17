@@ -16,6 +16,32 @@ const reserveQuerySchema = z.object({
     lotId: z.string().uuid(),
 });
 
+const reservationQuerySchema = z
+  .object({
+    zoneId: z.string().uuid().optional(),
+    from: z.coerce.date().optional(),
+    to: z.coerce.date().optional(),
+    lotId: z.string().uuid().optional(),
+    status: z
+      .enum(["active", "cancelled", "complete"])
+      .transform((value) => value.toUpperCase())
+      .optional(),
+    limit: z.coerce.number().positive().optional().default(1),
+    offset: z.coerce.number().optional().default(0),
+  })
+  .refine(
+    (data) => {
+      if (data.from && data.to) {
+        return data.from < data.to;
+      }
+      return true;
+    },
+    {
+      message: "From must be before to.",
+      path: ["from", "to"],
+    }
+  );
+
 export type ReserveQueryType = z.infer<typeof reserveQuerySchema>;
 
 const futureIdSchema = z.string().uuid();
@@ -55,6 +81,37 @@ export const reserve = async (req: Request, res: Response) => {
       console.error(error);
       res.status(500).json({message: "Error booking spot.", error: (error as Error).message});
     }  
+  };
+
+  export const getReservations = async (req: Request, res: Response) => {
+    const result = reservationQuerySchema.safeParse(req.query);
+    if (!result.success) {
+      res.status(400).json({ message: "Invalid request", error: result.error });
+      return;
+    }
+    const providerId = req?.user?.providerId!;
+    let { zoneId, from, to, lotId, limit, offset, status } = result.data;
+    try {
+      const reservations = await reservationModel.getReservations(
+        providerId,
+        lotId,
+        zoneId,
+        from,
+        to,
+        status,
+        limit,
+        offset
+      );
+      res.json(reservations);
+    } catch (error) {
+      console.error(error);
+      res
+        .status(500)
+        .json({
+          message: "Error getting reservations.",
+          error: (error as Error).message,
+        });
+    }
   };
   
   export const cancelReservation = async(req: Request, res: Response) => {
