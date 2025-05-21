@@ -11,12 +11,13 @@ const createValetTicketSchema = z.object({
     make: z.string().optional(),
     model: z.string().optional(),
     color: z.string().optional(),
-    lotId: z.string().uuid().optional(),
-    //TODO: This field will be deleted and come from the auth user
   }),
   customer: z.object({
     email: z.string(),
   }),
+  //TODO: This field will be deleted and come from the auth user
+  lotId: z.string().uuid().optional(),
+  zoneId: z.string().uuid(),
 });
 
 const vehicleRetreivalSchema = z.object({
@@ -27,7 +28,7 @@ export type vehicleType = z.infer<typeof createValetTicketSchema>["vehicle"];
 export type customerType = z.infer<typeof createValetTicketSchema>["customer"];
 
 export const createValetTicket = async (req: Request, res: Response) => {
-  const { id: valetId, role, lotId:id } = req.user!;
+  const { id: valetId, role, lotId: defaultLotid } = req.user!;
   
   //TODO: Maybe removed when permissions are implemented
   if (role !== "Valet") {
@@ -40,7 +41,8 @@ export const createValetTicket = async (req: Request, res: Response) => {
     return;
   }
 
-  const lotId = id || req.body.vehicle.lotId;
+  const lotId = defaultLotid || req.body.lotId;
+  const zoneId = parsedBody.data.zoneId;
   //TODO: Handle lotId value with diffrent roles.
   if (!valetId || !lotId) {
     res.status(401).json({ message: "Unauthorized" });
@@ -48,7 +50,7 @@ export const createValetTicket = async (req: Request, res: Response) => {
   }
   try {
     const { vehicle, customer } = parsedBody.data;
-    const valetParking = await valetModel.createValetTicket(valetId, lotId,vehicle, customer);
+    const valetParking = await valetModel.createValetTicket(valetId, lotId, zoneId, vehicle, customer);
     const vehicleId = valetParking.ticket.vehicle.id;
     await sendEmail(
       customer.email,

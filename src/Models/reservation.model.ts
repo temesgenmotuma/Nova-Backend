@@ -1,10 +1,8 @@
 import db from "../Db/db";
 import {
-  getReservations,
   ReserveQueryType,
 } from "../Controllers/reservation.controller";
 import ModelError from "./ModelError";
-import { start } from "repl";
 
 const reservationModel = {
   async checkAvailability(

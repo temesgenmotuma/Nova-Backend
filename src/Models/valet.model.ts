@@ -6,7 +6,8 @@ import ModelError from "./ModelError";
 import { OccupationType } from "@prisma/client";
 
 const valetModel = {
-  async createValetTicket(valetId: string, lotId: string, vehicle: vehicleType, customer: customerType) {
+  //customer and valet usecase.
+  async createValetTicket(valetId: string, lotId: string, zoneId: string, vehicle: vehicleType, customer: customerType) {
     //TODO: Check if this query is necessary
     //TODO: Future improvement: Add check of the grace period
     //TODO: Payments 
@@ -14,25 +15,29 @@ const valetModel = {
       where: {
         vehicle: {
           licensePlateNumber: vehicle.licensePlate,
-          entryTickets: null,
+          entryTickets: {
+            none: {
+              status: "ACTIVE",
+            },
+          },
         },
         status: "ACTIVE",
-        startTime: {
-            gte: new Date(),
+        endTime: {
+          gt: new Date(), //endTime is not past 
         },
       },
       include: {
         spot: true,
         vehicle: {
-          include:{
+          include: {
             customer: {
               select: {
                 email: true,
-              }
-            }
-          }
-        }
-      }
+              },
+            },
+          },
+        },
+      },
     });
      
     //If the customer doesn't have reservation => it is a walk-in customer
@@ -85,7 +90,7 @@ const valetModel = {
       spot = reservationCust.spot;
       occupationType = "RESERVATION";
     } else {
-      spot = await entryExitModel.findNonReservationSpot(lotId);
+      spot = await entryExitModel.findNonReservationSpot(lotId, zoneId);
       occupationType = "NONRESERVATION";
     }
 
@@ -137,7 +142,7 @@ const valetModel = {
         },
       },
       orderBy: {
-        requestedAt: "desc",
+        requestedAt: "asc",
       },
       include: {
         vehicle: {

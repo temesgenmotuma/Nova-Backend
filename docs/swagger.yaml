@@ -63,9 +63,6 @@ paths:
                   id:
                     type: string
                     example: "12345"
-                  zoneId: 
-                    type: string
-                    format: uuid
                   email:
                     type: string
                     example: "user@example.com"
