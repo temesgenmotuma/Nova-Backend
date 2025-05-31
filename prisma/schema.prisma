@@ -19,6 +19,7 @@ model Customer {
 
   vehicles     Vehicle[]
   valetTickets ValetTicket[]
+  alerts       Alert[]
 }
 
 model Provider {
@@ -56,7 +57,8 @@ model Employee {
   providerId String
   provider   Provider @relation(fields: [providerId], references: [id])
 
-  valetTickets ValetTicket[]
+  valetTickets   ValetTicket[] @relation("IssuedTickets")
+  claimedTickets ValetTicket[] @relation("ClaimedTickets")
 }
 
 model Invitation {
@@ -122,12 +124,12 @@ model Spot {
 
   // lotId String
   // lot   Lot    @relation(fields: [lotId], references: [id])
+  zone   Zone   @relation(fields: [zoneId], references: [id])
+  zoneId String
 
   entryTickets EntryTicket[]
   reservations Reservation[]
-
-  zone   Zone   @relation(fields: [zoneId], references: [id])
-  zoneId String
+  valetTickets ValetTicket[]
 }
 
 enum OccupationType {
@@ -156,6 +158,7 @@ model Vehicle {
   entryTickets EntryTicket[]
   reservations Reservation[]
   valetTickets ValetTicket[]
+  alerts       Alert[]
 }
 
 model Reservation {
@@ -174,6 +177,8 @@ model Reservation {
 
   vehicleId String
   vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+
+  alerts Alert[]
 }
 
 enum ReservationStatus {
@@ -197,7 +202,7 @@ model EntryTicket {
   spotId String
   spot   Spot   @relation(fields: [spotId], references: [id])
 
-  vehicleId String 
+  vehicleId String
   vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
 }
 
@@ -237,16 +242,40 @@ model ValetTicket {
   customerId String?
   customer   Customer? @relation(fields: [customerId], references: [id])
 
-  issuedBy String
-  issuer   Employee @relation(fields: [issuedBy], references: [id])
+  issuedBy  String
+  issuer    Employee  @relation("IssuedTickets", fields: [issuedBy], references: [id])
+  claimedBy String?
+  claimer   Employee? @relation("ClaimedTickets", fields: [claimedBy], references: [id])
 
   vehicleId String
   vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+
+  spotId String?
+  spot   Spot?   @relation(fields: [spotId], references: [id])
 }
 
+//cancelled not used yet
 enum ValetTicketStatus {
   ISSUED
   VEHICLEREQUESTED
   COMPLETED
   CANCELLED
+  IN_PROGRESS
+}
+
+model Alert {
+  id        String   @id @default(uuid())
+  type      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  value     Json
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  vehicleId String?
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
+
+  reservationId String?
+  reservation   Reservation? @relation(fields: [reservationId], references: [id])
 }

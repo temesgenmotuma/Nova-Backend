@@ -42,8 +42,8 @@ export default function protect(validClients: string[]) {
 
     const clientType = req.headers["x-client-type"] as string;
     if(!validClients.includes(clientType)){
-      console.error("Unauthorized: Invalid client type.");
-      res.status(401).json({ message: "Unauthorized: Invalid client type." });
+      console.error("Unauthorized: Invalid client type for this operation.");
+      res.status(401).json({ message: "Unauthorized: Invalid client type for this operation." });
       return;
     }
 
