@@ -119,7 +119,7 @@ paths:
           $ref: "#/components/responses/500"
 
 # Employee Endpoints  
-  /auth/employees/register:
+  /employees/auth/register:
     post:
       tags:
         - provider
@@ -144,7 +144,7 @@ paths:
             $ref: "#/components/responses/409"
         "500":
           $ref: "#/components/responses/500"
-  /auth/employees/login:
+  /employees/auth/login:
     post:
       tags:
         - provider
@@ -185,7 +185,7 @@ paths:
           $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
-  /auth/employees/invite:
+  /employees/invite:
     post:
       tags:
         - provider
@@ -232,7 +232,34 @@ paths:
           $ref: "#/components/responses/409"
         "500":
           $ref: "#/components/responses/500"  
-  /auth/employees/:
+  /employees:
+    get: 
+      tags:
+        - provider
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: query
+          name: lotId
+          required: true
+          schema:
+            type: string
+      summary: Get all employees of a provider
+      description: Returns all employees of a provider.
+      responses:
+        "200":
+          description: Successfully retrieved employees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Employee"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
     post:
       tags:
         - provider
@@ -277,7 +304,7 @@ paths:
           $ref: "#/components/responses/409"
         "500":
           $ref: "#/components/responses/500"
-  /auth/employees/send-reset:
+  /employees/send-reset:
     post:
       tags:
         - provider
@@ -1165,7 +1192,7 @@ paths:
           $ref: "#/components/responses/500"
 
   # Valet Endpoints - TODO:complete
-  /vehicles/valet-ticket:
+  /valet/valet-tickets:
     post:
       tags:
         - valet-parking
@@ -1205,7 +1232,9 @@ paths:
                     email: 
                       type: string
                       example: custone@gmail.com
-
+                zoneId:
+                  type: string
+                  format: uuid
       responses:
         "201":
           description: Successfully created valet ticket
@@ -1219,7 +1248,29 @@ paths:
           $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
-  /vehicles/retrieval/{ticketId}:
+    get:
+      tags:
+        - valet-parking
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+      summary: Get all valet retrieval requests
+      description: Returns all valet retrieval requests.
+      responses:
+        "200":
+          description: Successfully retrieved valet tickets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EntryTicket"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+  /valet/valet-tickets/{ticketId}:
     patch:
       tags:
         - valet-parking
@@ -1256,26 +1307,67 @@ paths:
         "404":
           $ref: "#/components/responses/404"
         "500":
-          $ref: "#/components/responses/500"
-  /vehicles/retrieval:
-    get:
+          $ref: "#/components/responses/500" 
+  /valet/valet-tickets/{ticketId}/claim:
+    patch:
       tags:
         - valet-parking
       security:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/XClientType"
-      summary: Get all valet retrieval requests
-      description: Returns all valet retrieval requests.
+        - in: path
+          name: ticketId
+          description: The ID of the valet ticket
+          required: true
+          schema:
+            type: string
+            format: uuid
+      summary: Accept a valet ticket
+      description: Accepts a valet ticket for a vehicle.
       responses:
         "200":
-          description: Successfully retrieved valet tickets
+          description: Successfully accepted valet ticket
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/EntryTicket"
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Valet ticket accepted successfully."
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+  /valet/valet-tickets/{ticketId}/complete:
+    patch:
+      tags:
+        - valet-parking
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: ticketId
+          description: The ID of the valet ticket
+          required: true
+          schema:
+            type: string
+            format: uuid
+      summary: Complete a valet ticket
+      description: Completes a valet ticket for a vehicle.
+      responses:
+        "200":
+          description: Successfully completed valet ticket
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Valet ticket completed successfully."
         "404":
           $ref: "#/components/responses/404"
         "500":

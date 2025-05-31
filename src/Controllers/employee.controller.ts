@@ -50,6 +50,8 @@ const createEmployeeSchema = joi.object({
   confirmPassword: joi.ref("password"),
 });
 
+const idSchema = joi.string().uuid().required();
+
 const resetPasswordSchema = joi.object({
   email: joi.string().email().required(),
   // password: joi.string().min(8).required(),
@@ -243,6 +245,27 @@ export const getUser = async(req: Request, res: Response) => {
     res.status(500).json(error);
   }
 };
+
+export const getEmployees = async(req: Request, res: Response) => {
+  const providerId = req.user?.providerId!;
+  const {value, error} = idSchema.validate(req.query.lotId!);
+  if(req.user?.role !== "admin"){
+    res.status(403).json({ message: "Forbidden. Only admins can access this resource." });
+    return;
+  }
+  if (error) {
+    res.status(400).json({ error: error.details[0].message });
+    return;
+  }
+  const lotId = value;
+  try {
+    const employees = await employeeModel.getEmployees(lotId);
+    res.json(employees);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching employees.", error });
+  }
+}
 
 export const sendResetEmail = async(req: Request, res: Response) => {
   const { error, value } = resetPasswordSchema.validate(req.body);

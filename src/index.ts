@@ -4,6 +4,7 @@ import fs from "node:fs";
 import cors from "cors";
 import yaml from "yaml";
 import dotenv from "dotenv";
+import "./cron/cron"; 
 dotenv.config();
 
 const app = express();
@@ -17,6 +18,7 @@ import providerRoutes from "./Routes/provider";
 import vehicleRoutes from "./Routes/vehicle";
 import reservationRoutes from "./Routes/reservation";
 import zoneRoutes from "./Routes/zone";
+import valetRoutes from "./Routes/valet";
 
 import swaggerUi from "swagger-ui-express";
 const swaggerDocument = yaml.parse(
@@ -28,13 +30,14 @@ app.use(express.json());
 app.use(cors());
 
 app.use("/v1/customer", customerRoutes);
-app.use("/v1/auth/employees", employeeRoutes);
+app.use("/v1/employees", employeeRoutes);
 app.use("/v1/provider", providerRoutes);
 app.use("/v1/lots", lotRoutes);
 app.use("/v1/spots", spotRoutes);
 app.use("/v1/zones", zoneRoutes);
 app.use("/v1/vehicles", vehicleRoutes);
 app.use("/v1/reservations", reservationRoutes);
+app.use("/v1/valet", valetRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

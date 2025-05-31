@@ -1,7 +1,7 @@
 import db from "../Db/db";
 import crypto from "crypto";
 
-import { Employee, Provider } from "../Controllers/employee.controller";
+import { Employee, getEmployees, Provider } from "../Controllers/employee.controller";
 import { Role } from "@prisma/client";
 import { Invitation } from "@prisma/client";
 
@@ -140,7 +140,18 @@ const employeeModel = {
         },
       },
     });
+  },
+
+  async getEmployees(lotId: string) {
+    return await db.employee.findMany({
+      where: {
+        lot: {
+          ...(lotId && { id: lotId }),
+        },
+      },
+    });
   }
+
 };
 
 export default employeeModel;
