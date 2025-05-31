@@ -20,6 +20,7 @@ const valetModel = {
               status: "ACTIVE",
             },
           },
+          deletedAt: null,
         },
         status: "ACTIVE",
         endTime: {
@@ -138,7 +139,10 @@ const valetModel = {
       where: {
         status: "VEHICLEREQUESTED",
         issuer: {
-          lotId: lotId,
+          lot: {
+            id: lotId,
+          }
+          // lotId: lotId,
         },
       },
       orderBy: {
@@ -162,7 +166,79 @@ const valetModel = {
       },
     });
     return activeRequests;
-  }
+  },
+
+  async claimRetrievalRequest(ticketId: string, valetId: string) {
+     await db.$transaction(async (tx) =>{
+      await db.$queryRaw`SELECT * FROM "ValetTicket" WHERE id = ${ticketId} FOR UPDATE`;
+      const ticket = await tx.valetTicket.findUnique({
+        where: {
+          id: ticketId,
+        }
+      });
+
+      if (!ticket) {
+        throw new ModelError("Ticket not found", 404);
+      }
+      
+      await db.valetTicket.update({
+        where: {
+          id: ticketId,
+          status: "IN_PROGRESS",
+        },
+        data: {
+          claimedBy: valetId,
+        },
+      });
+    });
+  },
+
+  async completeVehicleRetrieval(ticketId: string) {
+    const ticket = await db.valetTicket.findUnique({
+      where: {
+        id: ticketId,
+      },
+      include: {
+        vehicle: true,
+        spot: true,
+      },
+    });
+
+    if (!ticket) {
+      throw new ModelError("Ticket not found", 404);
+    }
+
+    if (ticket.status !== "IN_PROGRESS") {
+      throw new ModelError("Ticket is not in progress", 400);
+    }
+
+
+    await db.$transaction(async (tx) => {
+      // Update the ticket status
+      await tx.valetTicket.update({
+        where: {
+          id: ticketId,
+        },
+        data: {
+          status: "COMPLETED",
+          completedAt: new Date(),
+        },
+      });
+
+      // Update the spot status
+      await tx.spot.update({
+        where: {
+          id: ticket.spot?.id,
+        },
+        data: {
+          status: "Available",
+          occupationType: "NONRESERVATION",
+        },
+      });
+    });
+
+    return ticket;
+  },
 };
 
 export default valetModel;

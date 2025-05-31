@@ -24,8 +24,6 @@ router.post("/entry/reservation", protect(["provider"]), reservationEntry);
 router.patch("/exit/walk-in", protect(["provider"]), nonReservationExit);
 router.patch("/exit/reservation", protect(["provider"]), reservationExit);
 
-router.post("/valet-ticket", protect(["provider"]), createValetTicket);
-
 router.get("", protect(["customer"]), getVehicles);
 router.post("", protect(["customer"]), createVehicle);
 

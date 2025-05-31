@@ -20,9 +20,10 @@ const createValetTicketSchema = z.object({
   zoneId: z.string().uuid(),
 });
 
-const vehicleRetreivalSchema = z.object({
+const ticketIdSchema = z.object({
   ticketId: z.string().uuid(),
 });
+
 
 export type vehicleType = z.infer<typeof createValetTicketSchema>["vehicle"];
 export type customerType = z.infer<typeof createValetTicketSchema>["customer"];
@@ -32,7 +33,7 @@ export const createValetTicket = async (req: Request, res: Response) => {
   
   //TODO: Maybe removed when permissions are implemented
   if (role !== "Valet") {
-    res.status(403).json({ message: "Forbidden" });
+    res.status(403).json({ message: "Only valets can create valetTickets." });
     return;
   }
   const parsedBody = createValetTicketSchema.safeParse(req.body);
@@ -71,8 +72,8 @@ export const createValetTicket = async (req: Request, res: Response) => {
   }
 };
 
-export const createRetreivalRequest = async (req: Request, res: Response) => {
-  const ticketBody = vehicleRetreivalSchema.safeParse(req.params);
+export const makeRetreivalRequest = async (req: Request, res: Response) => {
+  const ticketBody = ticketIdSchema.safeParse(req.params);
   if (!ticketBody.success) {
     res.status(400).json({ message: ticketBody.error.errors });
     return;
@@ -84,7 +85,7 @@ export const createRetreivalRequest = async (req: Request, res: Response) => {
       res.status(404).json({ message: "Ticket not found" });
       return;
     }
-    res.json({ticket});
+    res.json(ticket);
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -95,14 +96,14 @@ export const createRetreivalRequest = async (req: Request, res: Response) => {
 };
 
 export const getRetrievalRequests = async (req: Request, res: Response) => {
-  const { id: valetId, role } = req.user!;
-  if (role !== "Valet") {
+  const { id: valetId, role, lotId } = req.user!;
+  if (role !== "Valet" || !lotId) {
     res.status(403).json({ message: "Forbidden" });
     return;
   }
   try {
-    const retrievalRequests = await valetModel.getActiveVehicleRequests(valetId);
-    res.json({ retrievalRequests });
+    const retrievalRequests = await valetModel.getActiveVehicleRequests(lotId);
+    res.json(retrievalRequests);
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -111,3 +112,44 @@ export const getRetrievalRequests = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const claimRetrievalRequest = async (req: Request, res: Response) => {
+  const parsedBody = ticketIdSchema.safeParse(req.params);
+  if (!parsedBody.success) {
+    res.status(400).json({ message: parsedBody.error.errors });
+    return;
+  }
+  const { id: valetId } = req.user!;
+  try {
+    const {ticketId} = parsedBody.data;
+    const ticket = await valetModel.claimRetrievalRequest(ticketId, valetId);
+    res.json(ticket);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Internal server error",
+      error: (error as Error).message,
+    });
+  }
+};
+
+//TODO: NOT COMPLETED AND NOT TESTED
+export const completeRetrievalRequest = async (req: Request, res: Response) => {
+  const parsedBody = ticketIdSchema.safeParse(req.params);
+  if (!parsedBody.success) {
+    res.status(400).json({ message: parsedBody.error.errors });
+    return;
+  }
+  const { id: valetId } = req.user!;
+  try {
+    const {ticketId} = parsedBody.data;
+    const ticket = await valetModel.completeVehicleRetrieval(ticketId);
+    res.json(ticket);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Internal server error",
+      error: (error as Error).message,
+    });
+  }
+}
