@@ -3,6 +3,21 @@ import { SpotStatus } from "@prisma/client";
 
 import { nearbyLotsQueryType } from "../Controllers/lot.controller";
 
+const constructSortString = (sortBy: string, sw: any, location: any) => {
+  let sortString: string = "";
+  if (sortBy === "distance") {
+    sortString = `
+      ORDER BY ST_Distance(${location}, ST_MakePoint(${sw.lng}, ${sw.lat}));
+    `;
+  }
+  if (sortBy === "price") {
+    sortString = `
+      ORDER BY price;
+    `;
+  }
+  return sortString;
+}
+
 interface createLot {
   name: string;
   capacity: number;
@@ -96,8 +111,8 @@ const lotModel = {
     });
   },
 
-  async getNearbylots(area: nearbyLotsQueryType) {
-    const {location: { longitude, latitude }, radius} = area;
+  async getLotsWithinDistance(area: nearbyLotsQueryType) {
+    const { longitude, latitude, radius} = area;
 
     return await db.$queryRaw`
       SELECT name, ST_AsText(location) AS location 
@@ -105,9 +120,25 @@ const lotModel = {
       WHERE ST_DWithin(
         location,
         ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}),4326),
-        ${radius}
+        ${500}
       )  
     `;
+  },
+
+  async getLotsInBoundingBox(body: any) {
+    const { sw, ne, sortBy } = body;
+    let sortString : string = constructSortString(sortBy, sw, 'location');
+    
+    const parkingLots = await db.$queryRaw`
+      SELECT id, name, price, availability, location
+      FROM parking_lots
+      WHERE ST_Contains(
+        ST_MakeEnvelope(${sw.lng}, ${sw.lat}, ${ne.lng}, ${ne.lat}, 4326),
+        location
+      )
+      ${sortString}
+    `;
+    return parkingLots;
   },
 
   async getZonesByLot(lotId: string) {

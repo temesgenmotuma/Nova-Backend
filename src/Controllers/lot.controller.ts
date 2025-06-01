@@ -27,11 +27,9 @@ export const createLotSchema = joi.object({
 });
 
 const nearbyLotsQuerySchema = z.object({
-  location: z.object({
-    latitude: z.coerce.number(),
-    longitude: z.coerce.number(),
-  }),
-  radius: z.coerce.number(),
+  latitude: z.coerce.number(),
+  longitude: z.coerce.number(),
+  radius: z.coerce.number().optional().default(500), // default radius in meters
 });
 
 const uuidSchema = z.string().uuid();
@@ -89,7 +87,7 @@ export const getNearbylots = async (req: Request, res: Response) => {
     return;
   }
   try {
-    const nearbySpots = await lotModel.getNearbylots(value.data);
+    const nearbySpots = await lotModel.getLotsWithinDistance(value.data);
     res.json(nearbySpots);
   } catch (error) {
     console.error(error);
