@@ -402,7 +402,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Lot"
+                  $ref: "#/components/schemas/LotWithDetails"
         "500":
           $ref: "#/components/responses/500"  
     post:
@@ -410,7 +410,7 @@ paths:
         - lot
       security:
         - BearerAuth: []    
-      summary: Create a new lot & optionally create spots in it.
+      summary: Create a new lot
       description: Creates a new parking lot for a provider
       parameters:
         - $ref: "#/components/parameters/XClientType"
@@ -525,32 +525,42 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                      example: "12345"
-                    name:
-                      type: string
-                      example: "Parking Lot A"
-                    capacity:
-                      type: integer
-                      example: 100
-                    location:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 5
+                  lots:
+                    type: array
+                    items:
                       type: object
                       properties:
-                        latitude:
-                          type: number
-                          example: 37.7749
+                        id:
+                          type: string
+                          example: "12345"
+                        name:
+                          type: string
+                          example: "Parking Lot A"
                         longitude:
                           type: number
                           example: -122.4194
-                    distance:
-                      type: number
-                      example: 450
-                      description: Distance in meters from the given location.
+                        latitude:
+                          type: number
+                          example: 37.7749
+                        description:
+                          type: string
+                          example: "A spacious parking lot with ample space."
+                        hasValet:
+                          type: boolean
+                          example: false
+                        rating:
+                          type: number
+                          format: float
+                          example: 4.5
+                        distance:
+                          type: number
+                          example: 450
+                          description: (optional)Distance in meters from the given location.
         "400":
           $ref: "#/components/responses/400"
         "500":
@@ -1809,6 +1819,22 @@ components:
         updatedAt:
           type: string
           format: date-time
+    LotWithDetails:
+      allOf:
+      - $ref: "#/components/schemas/Lot"
+      - type: object
+        properties:
+          hasValet:
+            type: boolean
+            example: true
+          longitude:
+            type: number
+            format: float
+            example: -122.4194
+          latitude:
+            type: number
+            format: float
+            example: 37.7749
     Spot:
       type: array
       items:

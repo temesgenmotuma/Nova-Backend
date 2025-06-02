@@ -50,10 +50,10 @@ export default function protect(validClients: string[]) {
     try {
       const { data, error } = await supabase.auth.getUser(accessToken);
       if (error) {
-        console.error("Failed to get supabase auth user", error);
+        console.error(error);
         res
           .status(401)
-          .json({ message: "Unauthorized: Supabase sign in failed." });
+          .json({ message: `Unauthorized: ${error.message}` });
         return;
       }
 
@@ -81,7 +81,7 @@ export default function protect(validClients: string[]) {
           id: user?.id,
           providerId: user?.provider.id,
           lotId: user?.lot?.id,
-          role: user?.role,
+          role: user?.role.toLowerCase(),
           email: user?.email,
         };
       } else {

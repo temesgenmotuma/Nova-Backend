@@ -2,6 +2,7 @@ import db from "../Db/db";
 
 import { nearbyLotsQueryType } from "../Controllers/lot.controller";
 import { createLotType } from "../Controllers/lot.controller";
+import ModelError from "./ModelError";
 
 const constructSortString = (sortBy: string, lng: any, lat: any, location: any) => {
   let sortString: string = "";
@@ -20,14 +21,20 @@ const constructSortString = (sortBy: string, lng: any, lat: any, location: any) 
 
 const lotModel = {
   async getLotsOfCurrProvider(providerId: string) {
-    return await db.lot.findMany({
-      where: {
-        providerId: providerId,
-      },
-      omit:{
-        providerId: true,
-      }
-    });
+    return await db.$queryRaw`
+      SELECT 
+        id, 
+        name,
+        capacity, 
+        St_X(location) as latitude, 
+        ST_Y(location) as longitude, 
+        description, 
+        "hasValet", 
+        "createdAt", 
+        "updatedAt"
+      FROM "Lot" 
+      WHERE "providerId" = ${providerId};
+    `;
   },
 
   async createLot(lot: createLotType, providerId: string) {
@@ -95,29 +102,99 @@ const lotModel = {
 
   async getLotsWithinDistance(area: nearbyLotsQueryType) {
     const { longitude, latitude, radius, sortBy } = area;
-    const orderByColumn = sortBy === 'price' ? 'price' : 'ST_Distance(location, ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326))';
-
-    //TODO: Add sortBy to the query
-    return await db.$queryRaw`
-      SELECT 
-        l.name, 
-        l.price, 
-        ST_AsText(l.location) AS location, 
-        l.description, 
-        l.hasValet, 
-        r.rating 
-      FROM 
-        "Lot" l JOIN 
-        "Review" r ON l.id = r."lotId" 
-      WHERE 
-        ST_DWithin(
-          l.location,
-          ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326),
-          ${radius}
-        ) 
-      -- ORDER BY 
-      --   ${orderByColumn};
+    let lots:any = [];
+    if(sortBy === 'distance') {
+      lots =  await db.$queryRaw`
+        SELECT 
+          l.id,
+          l.name, 
+          -- l.price, 
+          ST_X(l.location) AS longitude, 
+          ST_Y(l.location) AS latitude,
+          ST_Distance(l.location, ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326)::geography) as distance,
+          l.description, 
+          l."hasValet", 
+          r.rating,
+          COUNT(*) OVER()::integer AS total_count
+        FROM 
+          "Lot" l LEFT JOIN 
+          "Review" r ON l.id = r."lotId" 
+        WHERE 
+          ST_DWithin(
+            l.location,
+            ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326)::geography,
+            ${radius}
+          ) 
+        ORDER BY 
+          ST_Distance(l.location, ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326)::geography)
+        ;
+      `;
+    }
+    
+    else if(sortBy === 'price') {
+      lots = await db.$queryRaw`
+        SELECT 
+          l.id,
+          l.name, 
+          -- l.price, 
+          ST_X(l.location) AS longitude, 
+          ST_Y(l.location) AS latitude,, 
+          l.description, 
+          l."hasValet", 
+          r.rating 
+        FROM 
+          "Lot" l JOIN 
+          "Review" r ON l.id = r."lotId" 
+        WHERE 
+          ST_DWithin(
+            l.location,
+            ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326)::geography,
+            ${radius}
+          ) 
+        ORDER BY 
+          l.price;
     `;
+    }
+    else if(!sortBy) {
+      lots = await db.$queryRaw`
+        SELECT 
+          l.id
+          l.name, 
+          -- l.price, 
+          ST_X(l.location) AS longitude, 
+          ST_Y(l.location) AS latitude,
+          l.description, 
+          l."hasValet", 
+          r.rating 
+        FROM 
+          "Lot" l JOIN 
+          "Review" r ON l.id = r."lotId" 
+        WHERE 
+          ST_DWithin(
+            l.location,
+            ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326)::geography,
+            ${radius}
+          );
+      `;
+    }
+    else{
+      throw new ModelError("Invalid sortBy value. Use 'distance' or 'price'.", 400);
+    }
+
+    return {
+      count: lots.length !== 0 ? lots[0]?.total_count : 0,
+      lots: lots.map((lot: any) => ({
+        id: lot.id,
+        name: lot.name,
+        longitude: lot.longitude,
+        latitude: lot.latitude,
+        ...(!!lot.distance && { distance: lot.distance }),
+        description: lot.description,
+        hasValet: lot.hasValet,
+        rating: lot.rating || null,
+      })),
+    };
+
   },
 
   async getLotsInBoundingBox(body: any) {

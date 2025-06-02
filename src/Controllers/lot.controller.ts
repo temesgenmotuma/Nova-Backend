@@ -3,6 +3,7 @@ import {z} from "zod";
 import { Request, Response } from "express";
 import lotModel from "../Models/lot.model";
 import { hasPermission } from "../utils/permission";
+import ModelError from "../Models/ModelError";
 
 const spotSchema = joi.object({
   numberOfSpots: joi.number().integer().empty("").default(0),
@@ -100,6 +101,10 @@ export const getNearbylots = async (req: Request, res: Response) => {
     res.json(nearbySpots);
   } catch (error) {
     console.error(error);
+    if(error instanceof ModelError){
+      res.status(error.statusCode).json({message: error.message});
+      return;
+    }
     res.status(500).json({message: "Error fetching nearby parking lots.", error: (error as Error).message});
   }
 };
