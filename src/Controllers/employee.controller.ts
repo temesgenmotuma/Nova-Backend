@@ -50,7 +50,12 @@ const createEmployeeSchema = joi.object({
   confirmPassword: joi.ref("password"),
 });
 
-const idSchema = joi.string().uuid().required();
+const getEmployeesSchema = joi.object({
+ lotId : joi.string().uuid(),
+ offset: joi.number().integer().min(0).default(0),
+ limit: joi.number().integer().min(1).max(100).default(1),
+}
+);
 
 const resetPasswordSchema = joi.object({
   email: joi.string().email().required(),
@@ -185,13 +190,22 @@ export const inviteEmployee = async (req: Request, res: Response) => {
       res.status(409).json({ message });
       return;
     }
-    
+
     //do i need to check if an unexpired inivitation already exists?
 
-    await employeeModel.createInvitation(email, role, providerId, lot);
+    const { token } = await employeeModel.createInvitation(email, role, providerId, lot);
 
-    //TODO: add correct email template
-    await sendEmail(email);
+  await sendEmail(
+    email,
+    "Invitation to join the parking management system",
+    `<html>
+      <body>
+        <p>You have been invited to join the parking management system. Please click the link below to accept the invitation:</p>
+        <a href="http://localhost:5173/add-employee?token=${token}">http://localhost:5173/add-employee?token=${token}</a>
+        <p>Hello</p>
+      </body>
+    </html>`
+  );
     res.json({ message: "Invitation email sent." });
   } catch (error) {
     console.error(error);
@@ -248,8 +262,9 @@ export const getUser = async(req: Request, res: Response) => {
 
 export const getEmployees = async(req: Request, res: Response) => {
   const providerId = req.user?.providerId!;
-  const {value, error} = idSchema.validate(req.query.lotId!);
-  if(req.user?.role !== "admin"){
+  const {value, error} = getEmployeesSchema.validate(req.query);
+  //NOTE: lotId is a dropdown or a filter
+  if(req.user?.role.toLowerCase() !== "admin"){
     res.status(403).json({ message: "Forbidden. Only admins can access this resource." });
     return;
   }
@@ -257,9 +272,9 @@ export const getEmployees = async(req: Request, res: Response) => {
     res.status(400).json({ error: error.details[0].message });
     return;
   }
-  const lotId = value;
+  const {lotId, limit, offset} = value;
   try {
-    const employees = await employeeModel.getEmployees(lotId);
+    const employees = await employeeModel.getEmployees(lotId, providerId, limit, offset);
     res.json(employees);
   } catch (error) {
     console.error(error);

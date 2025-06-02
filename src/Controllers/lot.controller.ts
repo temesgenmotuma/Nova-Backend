@@ -2,6 +2,7 @@ import joi from "joi";
 import {z} from "zod";
 import { Request, Response } from "express";
 import lotModel from "../Models/lot.model";
+import { hasPermission } from "../utils/permission";
 
 const spotSchema = joi.object({
   numberOfSpots: joi.number().integer().empty("").default(0),
@@ -11,33 +12,42 @@ const spotSchema = joi.object({
 });
 
 //TODO: numberOfSpots < capacity
-export const createLotSchema = joi.object({
-  name: joi.string().required(),
-  capacity: joi.number().required(),
-  location: joi.object({
-    latitude: joi.number().required(),
-    longitude: joi.number().required(),
+export const createLotSchema = z.object({
+  name: z.string(),
+  capacity: z.number(),
+  location: z.object({
+    latitude: z.number(),
+    longitude: z.number(),
   }),
-  // address: joi.object({
-  //   region: joi.string(),
-  //   city: joi.string(),
-  //   woreda: joi.string(),
-  // }),
-  // spot: joi.alternatives().try(spotSchema).default({}).optional(),
+  description: z.string().optional().nullable().default(""),
+  hasValet: z.boolean().optional().default(false),
+  // address: z.object({
+  //   region: z.string(),
+  //   city: z.string(),
+  //   woreda: z.string(),
+  // }).optional(),
+  // spot: z.lazy(() => spotSchema).optional().default({}),
 });
 
 const nearbyLotsQuerySchema = z.object({
   latitude: z.coerce.number(),
   longitude: z.coerce.number(),
-  radius: z.coerce.number().optional().default(500), // default radius in meters
+  radius: z.coerce.number().optional().default(500), 
+  sortBy: z.enum(["distance", "price"]).optional().default("distance"),
 });
 
 const uuidSchema = z.string().uuid();
 
+export type createLotType = z.infer<typeof createLotSchema>;
 export type nearbyLotsQueryType = z.infer<typeof nearbyLotsQuerySchema>;
 
 export const getLotsOfCurrProvider = async (req: Request, res: Response) => {
   const providerId = req.user?.providerId!;
+  
+  if(req.user?.role !== "admin") {
+    res.status(403).json({ message: "Unauthorized access." });
+    return;
+  }
   try {
     const lots = await lotModel.getLotsOfCurrProvider(providerId);
     res.status(200).json(lots);    
@@ -49,13 +59,13 @@ export const getLotsOfCurrProvider = async (req: Request, res: Response) => {
 
 export const createLot = async (req: Request, res: Response) => {
   const providerId = req.user?.providerId!;
-  const { value, error } = createLotSchema.validate(req.body);
-  if (error) {
-    res.status(400).json({ error: error.details[0].message });
+  const value = createLotSchema.safeParse(req.body);
+  if (!value.success) {
+    res.status(400).json({ error: value.error.errors });
     return;
   }
   try {
-    const lot = await lotModel.createLot(value, providerId);
+    const lot = await lotModel.createLot(value.data, providerId);
     res.status(201).json(lot);
   } catch (error) {
     console.error(error);
@@ -71,7 +81,6 @@ export const getSpotsByLot = async (req: Request, res: Response) => {
     return;
   }
   try {
-    //get spots of a the current provider and a particular lot.
     const spots = await lotModel.getSpotsByLot(provId, lotId);
     res.status(200).json({ spots });
   } catch (error) {

@@ -21,10 +21,14 @@ tags:
     description: "Endpoints related to zones"
   - name: "vehicle"
     description: "Endpoints related to vehicles"
+  - name: "alert"
+    description: "Endpoints related to alerts"
   - name: "reservation"
     description: "Endpoints related to reservations"
   - name: "valet-parking"
     description: "Endpoints related to valet parking"
+  - name: "review"
+    description: "Endpoints related to reviews"
 
 paths:
 # Customer Endpoints
@@ -32,7 +36,7 @@ paths:
     post:
       tags:
         - customer
-      summary: Register a new customer
+      summary: (customer)Register a new customer
       description: Registers a new customer with an email, password, and optional username.
       requestBody:
         required: true
@@ -80,7 +84,7 @@ paths:
     post:
       tags:
         - customer
-      summary: Authenticate an existing customer
+      summary: (customer)Authenticate an existing customer
       description: Logs in a customer by validating their email and password. Returns a JWT token upon success.
       requestBody:
         required: true
@@ -148,8 +152,8 @@ paths:
     post:
       tags:
         - provider
-      summary: Authenticate a provider
-      description: Logs in a provider by validating their email and password. Returns a JWT token upon success.
+      summary: Authenticate an employee
+      description: Logs in an employee by validating their email and password. Returns a JWT token upon success.
       requestBody:
         required: true
         content:
@@ -242,7 +246,7 @@ paths:
         - $ref: "#/components/parameters/XClientType"
         - in: query
           name: lotId
-          required: true
+          required: false
           schema:
             type: string
       summary: Get all employees of a provider
@@ -253,11 +257,19 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Employee"
+                type: object
+                properties:                  
+                  count:
+                    type: integer
+                    example: 10
+                  employees:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Employee"
         "404":
           $ref: "#/components/responses/404"
+        "403":
+          $ref: "#/components/responses/403"
         "500":
           $ref: "#/components/responses/500"
     post:
@@ -399,7 +411,7 @@ paths:
       security:
         - BearerAuth: []    
       summary: Create a new lot & optionally create spots in it.
-      description: Creates a new parking lot for a provider & optionally create spots in it.
+      description: Creates a new parking lot for a provider
       parameters:
         - $ref: "#/components/parameters/XClientType"
       requestBody:
@@ -425,6 +437,9 @@ paths:
                   capacity:
                     type: integer
                     example: 100
+                  hasValet:
+                    type: boolean
+                    example: false
                   location: 
                     type: object
                     properties:
@@ -475,10 +490,35 @@ paths:
         - lot
       security:
         - BearerAuth: []
-      summary: Get all lots within some given distance from a location.
-      description: Returns all nearby parking lots.
+      summary: Get nearby parking lots
+      description: Retrieve parking lots within a specified radius from a given location.
       parameters:
         - $ref: "#/components/parameters/XClientType"
+        - in: query
+          name: latitude
+          required: true
+          schema:
+            type: number
+          description: Latitude of the location.
+        - in: query
+          name: longitude
+          required: true
+          schema:
+            type: number
+          description: Longitude of the location.
+        - in: query
+          name: radius
+          schema:
+            type: number
+            default: 500
+          description: Radius in meters to search for parking lots. Defaults to 500 meters.
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [distance, price]
+            default: distance
+          description: Sort the results by distance or price. Defaults to distance.
       responses:
         "200":
           description: Successfully retrieved nearby parking lots
@@ -487,7 +527,32 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Lot"
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: "12345"
+                    name:
+                      type: string
+                      example: "Parking Lot A"
+                    capacity:
+                      type: integer
+                      example: 100
+                    location:
+                      type: object
+                      properties:
+                        latitude:
+                          type: number
+                          example: 37.7749
+                        longitude:
+                          type: number
+                          example: -122.4194
+                    distance:
+                      type: number
+                      example: 450
+                      description: Distance in meters from the given location.
+        "400":
+          $ref: "#/components/responses/400"
         "500":
           $ref: "#/components/responses/500"
   
@@ -1029,6 +1094,186 @@ paths:
         "500":
           $ref: "#/components/responses/500"
 
+# Alert Endpoints
+  /alerts:
+    get:
+      tags:
+        - alert
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: query
+          name: lotId 
+          description: The ID of the parking lot
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: zoneId 
+          description: The ID of the zone
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: type
+          description: Type of alert to filter by
+          required: false
+          schema:
+            type: string
+            enum: [reservationExpiry, ] #add more types as needed
+        - in: query
+          name: limit
+          description: The number of alerts to return
+          required: false
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: offset
+          description: The number of alerts to skip
+          required: false
+          schema:
+            type: integer
+            default: 0
+      summary: Get all alerts 
+      description: Returns all alerts .
+      responses:
+        "200":
+          description: Successfully retrieved alerts 
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Alert"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+
+# Review Endpoints
+  /reviews:
+    get:
+      tags:
+        - review
+      security:
+        - BearerAuth: []
+      summary: Retrieve reviews for a specific lot
+      description: Allows customers and providers to retrieve reviews for a specific parking lot.
+      parameters:
+        - in: query
+          name: lotId
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The ID of the parking lot to retrieve reviews for.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of reviews to retrieve.
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+          description: Number of reviews to skip.
+      responses:
+        "200":
+          description: Successfully retrieved reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: "67890"
+                    rating:
+                      type: integer
+                      example: 4
+                    comment:
+                      type: string
+                      example: "Great parking experience!"
+                    createdAt:
+                      type: string
+                      format: date-time
+                    customer:
+                      type: object
+                      properties:
+                        username:
+                          type: string
+                          example: "user123"
+                        email:
+                          type: string
+                          example: "user@example.com"
+        "400":
+          $ref: "#/components/responses/400"
+        "500":
+          $ref: "#/components/responses/500"
+    post:
+      tags:
+        - review
+      security:
+        - BearerAuth: []
+      summary: Create a new review
+      description: Allows a customer to create a review for a parking lot.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lotId:
+                  type: string
+                  format: uuid
+                  example: "12345"
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 4
+                comment:
+                  type: string
+                  example: "Great parking experience!"
+      responses:
+        "201":
+          description: Successfully created review
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "67890"
+                  lotId:
+                    type: string
+                    example: "12345"
+                  rating:
+                    type: integer
+                    example: 4
+                  comment:
+                    type: string
+                    example: "Great parking experience!"
+                  createdAt:
+                    type: string
+                    format: date-time
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "500":
+          $ref: "#/components/responses/500"
+
  # Entry/Exit Endpoints
   /vehicles/entry/walk-in:
     post:
@@ -1400,6 +1645,9 @@ components:
     Employee:
       type: object
       properties:
+        id:
+          type: string
+          format: uuid
         name: 
           type: string
         phone:  
@@ -1410,6 +1658,30 @@ components:
         password:
           type: string
           format: password
+    GetEmployeesRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name: 
+          type: string
+        phone:  
+          type: string
+          example: 0912445578
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, valet]
+        lot:
+          type: object
+          properties:
+            id: 
+              type: string
+              format: uuid
+            name:
+              type: string
     Customer:
       type: object
       properties:
@@ -1671,6 +1943,38 @@ components:
       properties:
         ticket:
           $ref: "#/components/schemas/EntryTicket"
+    Alert:
+      type : object
+      properties:
+         id:
+            type: string
+            description: Unique identifier for the alert.
+         type:
+           type: string
+           description: Type of the alert.
+         createdAt:
+           type: string
+           format: date-time
+           description: Timestamp when the alert was created.
+         updatedAt:
+           type: string
+           format: date-time
+           description: Timestamp when the alert was last updated.
+         value:
+           type: object
+           description: JSON object containing additional alert details.
+         customerId:
+           type: string
+           nullable: true
+           description: ID of the associated customer (if any).
+         vehicleId:
+           type: string
+           nullable: true
+           description: ID of the associated vehicle (if any).
+         reservationId:
+           type: string
+           nullable: true
+           description: ID of the associated reservation (if any).
   parameters:
     XClientType:
       name: x-client-type

@@ -111,14 +111,7 @@ const employeeModel = {
     }
 
     const token = crypto.randomBytes(32).toString("hex");
-    return await db.invitation.create({
-      /* where: {
-        email: email,
-        expiresAt: {
-          gt: new Date(Date.now()).toISOString(),
-        },
-      }, */
-      // update: {},
+    const newInvite = await db.invitation.create({
       data: {
         ...(role !== "Admin" && { lotId: lotId }),
         email,
@@ -128,6 +121,8 @@ const employeeModel = {
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
       },
     });
+  
+    return { ...newInvite, token };
   },
   
   async getInvitation(token: string){
@@ -142,16 +137,39 @@ const employeeModel = {
     });
   },
 
-  async getEmployees(lotId: string) {
-    return await db.employee.findMany({
+  async getEmployees(lotId: string, providerId: string, limit: number, offset: number) {
+    const employees = await db.employee.findMany({
       where: {
         lot: {
           ...(lotId && { id: lotId }),
+          providerId,
+        },
+      },
+      omit: {
+        lotId: true,
+      },
+      take: limit,
+      skip: offset,
+      include: {
+        lot: {
+          select: {
+            name: true,
+            id: true,
+          },
         },
       },
     });
-  }
 
+    const count = await db.employee.count({
+      where: {
+        lot: {
+          ...(lotId && { id: lotId }),
+          providerId,
+        },
+      },
+    });
+    return { count, employees};
+  }
 };
 
 export default employeeModel;

@@ -20,14 +20,15 @@ model Customer {
   vehicles     Vehicle[]
   valetTickets ValetTicket[]
   alerts       Alert[]
+  reviews      Review[]
 }
 
 model Provider {
-  id       String  @id @default(uuid())
-  name     String  @unique
-  email    String? @unique
+  id       String   @id @default(uuid())
+  name     String   @unique
+  email    String?  @unique
   phone    String //may not be needed.
-  hasValet Boolean
+  hasValet Boolean?
 
   supabaseId String @unique
 
@@ -78,13 +79,15 @@ model Invitation {
 }
 
 model Lot {
-  id        String                                @id @default(uuid())
-  name      String
-  capacity  Int
-  location  Unsupported("GEOGRAPHY(POINT, 4326)")
-  address   String?
-  createdAt DateTime                              @default(now())
-  updatedAt DateTime                              @updatedAt
+  id          String                                @id @default(uuid())
+  name        String
+  capacity    Int
+  location    Unsupported("GEOGRAPHY(POINT, 4326)")
+  address     String?
+  createdAt   DateTime                              @default(now())
+  updatedAt   DateTime                              @updatedAt
+  description String?
+  hasValet    Boolean                               @default(false) 
 
   providerId String
   provider   Provider @relation(fields: [providerId], references: [id])
@@ -93,6 +96,7 @@ model Lot {
   zones       Zone[]
   invitations Invitation[]
   employees   Employee[]
+  review      Review[]
 
   @@index([location], name: "location_idx", type: Gist)
 }
@@ -278,4 +282,18 @@ model Alert {
 
   reservationId String?
   reservation   Reservation? @relation(fields: [reservationId], references: [id])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  lotId String
+  lot   Lot    @relation(fields: [lotId], references: [id])
 }

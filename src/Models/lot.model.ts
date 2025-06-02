@@ -1,13 +1,13 @@
 import db from "../Db/db";
-import { SpotStatus } from "@prisma/client";
 
 import { nearbyLotsQueryType } from "../Controllers/lot.controller";
+import { createLotType } from "../Controllers/lot.controller";
 
-const constructSortString = (sortBy: string, sw: any, location: any) => {
+const constructSortString = (sortBy: string, lng: any, lat: any, location: any) => {
   let sortString: string = "";
   if (sortBy === "distance") {
     sortString = `
-      ORDER BY ST_Distance(${location}, ST_MakePoint(${sw.lng}, ${sw.lat}));
+      ORDER BY ST_Distance(location, ST_SetSRID(ST_MAKEPOINT(${lng}, ${lat}), 4326));
     `;
   }
   if (sortBy === "price") {
@@ -16,27 +16,6 @@ const constructSortString = (sortBy: string, sw: any, location: any) => {
     `;
   }
   return sortString;
-}
-
-interface createLot {
-  name: string;
-  capacity: number;
-  location: {
-    latitude: number;
-    longitude: number;
-  };
-  // address: {
-  //   region: string;
-  //   city: string;
-  //   woreda: string;
-  // street: string;
-  // };
-  spot: {
-    numberOfSpots: number;
-    startingNumber: number;
-    name: string;
-    floor: number;
-  };
 }
 
 const lotModel = {
@@ -51,25 +30,28 @@ const lotModel = {
     });
   },
 
-  //create a lot and the spots associated with the lot
-  async createLot(lot: createLot, providerId: string) {
+  async createLot(lot: createLotType, providerId: string) {
     const {
       name: lotName,
       capacity,
       location: { latitude, longitude },
+      description,
+      hasValet
       // spot: { name: spotName, numberOfSpots, floor, startingNumber },
     } = lot;
 
     const result = await db.$transaction(async (tx) => {
       const lot = await tx.$queryRaw<{ id: string }[]>`
-        INSERT INTO "Lot" (id, name, "providerId", location, capacity, "updatedAt") 
+        INSERT INTO "Lot" (id, name, "providerId", location, capacity, "updatedAt", description, "hasValet") 
         VALUES (
           gen_random_uuid(), 
           ${lotName}, 
           ${providerId}, 
           ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326), 
           ${capacity}, 
-          NOW()
+          NOW(),
+          ${description || null},
+          ${hasValet|| false}
         ) 
         RETURNING id;
       `;
@@ -112,22 +94,35 @@ const lotModel = {
   },
 
   async getLotsWithinDistance(area: nearbyLotsQueryType) {
-    const { longitude, latitude, radius} = area;
+    const { longitude, latitude, radius, sortBy } = area;
+    const orderByColumn = sortBy === 'price' ? 'price' : 'ST_Distance(location, ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326))';
 
+    //TODO: Add sortBy to the query
     return await db.$queryRaw`
-      SELECT name, ST_AsText(location) AS location 
-      FROM "Lot" 
-      WHERE ST_DWithin(
-        location,
-        ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}),4326),
-        ${500}
-      )  
+      SELECT 
+        l.name, 
+        l.price, 
+        ST_AsText(l.location) AS location, 
+        l.description, 
+        l.hasValet, 
+        r.rating 
+      FROM 
+        "Lot" l JOIN 
+        "Review" r ON l.id = r."lotId" 
+      WHERE 
+        ST_DWithin(
+          l.location,
+          ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326),
+          ${radius}
+        ) 
+      -- ORDER BY 
+      --   ${orderByColumn};
     `;
   },
 
   async getLotsInBoundingBox(body: any) {
     const { sw, ne, sortBy } = body;
-    let sortString : string = constructSortString(sortBy, sw, 'location');
+    let sortString : string = constructSortString(sortBy, sw.lng, sw.lat,'location');
     
     const parkingLots = await db.$queryRaw`
       SELECT id, name, price, availability, location

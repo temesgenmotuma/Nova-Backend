@@ -4,7 +4,7 @@ import fs from "node:fs";
 import cors from "cors";
 import yaml from "yaml";
 import dotenv from "dotenv";
-import "./cron/cron"; 
+import "./cron/cron";  
 dotenv.config();
 
 const app = express();
@@ -19,6 +19,8 @@ import vehicleRoutes from "./Routes/vehicle";
 import reservationRoutes from "./Routes/reservation";
 import zoneRoutes from "./Routes/zone";
 import valetRoutes from "./Routes/valet";
+import alertRoutes from "./Routes/alert";
+import reviewRoutes from "./Routes/review";
 
 import swaggerUi from "swagger-ui-express";
 const swaggerDocument = yaml.parse(
@@ -38,6 +40,8 @@ app.use("/v1/zones", zoneRoutes);
 app.use("/v1/vehicles", vehicleRoutes);
 app.use("/v1/reservations", reservationRoutes);
 app.use("/v1/valet", valetRoutes);
+app.use("/v1/alert", alertRoutes);
+app.use("/v1/reviews", reviewRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

@@ -10,7 +10,7 @@ const router = express.Router();
 
 router.post("/", protect(["provider"]), createSpot);
 router.get("/:id", protect(["provider"]), getSpot);
-router.patch("/:id", protect(["provider"]), updateSpot); //Remember to protect this routes
+router.patch("/:spotId", protect(["provider"]), updateSpot); //Remember to protect this routes
 
 
 
