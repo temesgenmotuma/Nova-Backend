@@ -42,11 +42,11 @@ export const createValetTicket = async (req: Request, res: Response) => {
     return;
   }
 
-  const lotId = defaultLotid || req.body.lotId;
+  const lotId = defaultLotid || parsedBody.data.lotId;
   const zoneId = parsedBody.data.zoneId;
   //TODO: Handle lotId value with diffrent roles.
   if (!valetId || !lotId) {
-    res.status(401).json({ message: "Unauthorized" });
+    res.status(401).json({ message: "Unauthorized- forbidden to create valet ticket" });
     return;
   }
   try {

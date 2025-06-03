@@ -1,6 +1,6 @@
 import express from "express";
-// import './types/express';
 import fs from "node:fs";
+import path from "node:path";
 import cors from "cors";
 import yaml from "yaml";
 import dotenv from "dotenv";
@@ -30,6 +30,13 @@ const swaggerDocument = yaml.parse(
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use(express.json());
 app.use(cors());
+
+const uploadDir = path.join(__dirname, '..', 'uploads', 'lots');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true }); 
+}
+app.use('/uploads/lots', express.static(uploadDir));
+
 
 app.use("/v1/customer", customerRoutes);
 app.use("/v1/employees", employeeRoutes);

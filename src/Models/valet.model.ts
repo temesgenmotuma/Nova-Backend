@@ -1,9 +1,7 @@
 import db from "../Db/db";
 import { customerType, vehicleType } from "../Controllers/valet.controller";
-import { Spot } from "@prisma/client";
 import entryExitModel from "./entryExit.model";
 import ModelError from "./ModelError";
-import { OccupationType } from "@prisma/client";
 
 const valetModel = {
   //customer and valet usecase.
@@ -170,6 +168,7 @@ const valetModel = {
 
   async claimRetrievalRequest(ticketId: string, valetId: string) {
      await db.$transaction(async (tx) =>{
+      
       await db.$queryRaw`SELECT * FROM "ValetTicket" WHERE id = ${ticketId} FOR UPDATE`;
       const ticket = await tx.valetTicket.findUnique({
         where: {
@@ -212,9 +211,7 @@ const valetModel = {
       throw new ModelError("Ticket is not in progress", 400);
     }
 
-
     await db.$transaction(async (tx) => {
-      // Update the ticket status
       await tx.valetTicket.update({
         where: {
           id: ticketId,
@@ -225,7 +222,6 @@ const valetModel = {
         },
       });
 
-      // Update the spot status
       await tx.spot.update({
         where: {
           id: ticket.spot?.id,

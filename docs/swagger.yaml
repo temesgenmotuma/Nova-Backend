@@ -526,12 +526,14 @@ paths:
           required: true
           schema:
             type: number
+            format: float
           description: Latitude of the location.
         - in: query
           name: longitude
           required: true
           schema:
             type: number
+            format: float
           description: Longitude of the location.
         - in: query
           name: radius
@@ -588,6 +590,12 @@ paths:
                           type: number
                           example: 450
                           description: (optional)Distance in meters from the given location.
+                        images:
+                          type: array
+                          items:
+                            type: string
+                            format: uri
+                            example: "Img3423.jpg"
         "400":
           $ref: "#/components/responses/400"
         "500":
@@ -1358,7 +1366,7 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/XClientType"
-      summary: Record vehicle entry
+      summary: (provider)Record vehicle entry
       description: Records the entry of a vehicle into a parking lot.
       requestBody:
         required: true
@@ -1418,7 +1426,7 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/XClientType"
-      summary: Record reservation vehicle entry
+      summary: (Provider)Record reservation vehicle entry
       description: Records the entry of a vehicle w/c reserved a spot into a parking lot.
       requestBody:
         required: true
@@ -1460,7 +1468,7 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/XClientType"
-      summary: Record vehicle exit for a non reservation customer
+      summary: (Provider)Record vehicle exit for a non reservation customer
       description: Records the exit of a vehicle from a parking lot.
       requestBody:
         required: true
@@ -1489,7 +1497,7 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/XClientType"
-      summary: Record vehicle exit for a reservation customer
+      summary: (Provider)Record vehicle exit for a reservation customer
       description: Records the exit of a vehicle from a parking lot.
       requestBody:
         required: true
@@ -1520,7 +1528,7 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/XClientType"
-      summary: Create a valet ticket
+      summary: (Provider-Valet)Create a valet ticket
       description: Creates a valet ticket for a vehicle.
       requestBody:
         required: true
@@ -1575,7 +1583,7 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/XClientType"
-      summary: Get all valet retrieval requests
+      summary: (Provider-Valet)Get all valet retrieval requests
       description: Returns all valet retrieval requests.
       responses:
         "200":
@@ -1605,7 +1613,7 @@ paths:
           schema:
             type: string
             format: uuid
-      summary: Make a vehicle retreival request
+      summary: (Customer)Make a vehicle retreival request
       description: Makes a vehicle retreival request 
       responses:
         "200":
@@ -1643,8 +1651,8 @@ paths:
           schema:
             type: string
             format: uuid
-      summary: Accept a valet ticket
-      description: Accepts a valet ticket for a vehicle.
+      summary: (Provider-Valet)Claim a valet ticket
+      description: Claim a valet ticket for a vehicle.
       responses:
         "200":
           description: Successfully accepted valet ticket
@@ -1675,8 +1683,8 @@ paths:
           schema:
             type: string
             format: uuid
-      summary: Complete a valet ticket
-      description: Completes a valet ticket for a vehicle.
+      summary: (Provider-Valet)Complete a valet ticket 
+      description: Completes a valet ticket for a vehicle. Triggered when the vehicle is returned to the customer.
       responses:
         "200":
           description: Successfully completed valet ticket

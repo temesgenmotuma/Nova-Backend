@@ -3,6 +3,7 @@ import db from "../Db/db";
 import { nearbyLotsQueryType } from "../Controllers/lot.controller";
 import { createLotType } from "../Controllers/lot.controller";
 import ModelError from "./ModelError";
+import path from "path";
 
 const constructSortString = (sortBy: string, lng: any, lat: any, location: any) => {
   let sortString: string = "";
@@ -47,10 +48,9 @@ const lotModel = {
       // spot: { name: spotName, numberOfSpots, floor, startingNumber },
     } = lot;
 
-    const imagesString =
-      images.length > 0
-        ? "{" + images.map((image) => image.path).join(",") + "}"
-        : "{}";
+    const imagePathsToStore = images.map((image) => {
+      return path.basename(image.path);
+    });
 
     const result = await db.$transaction(async (tx) => {
       const lot = await tx.$queryRaw<{ id: string }[]>`
@@ -64,14 +64,13 @@ const lotModel = {
           NOW(),
           ${description || null},
           ${hasValet || false},
-          ${imagesString}::text[]
+          ${imagePathsToStore}::text[]
         ) 
         RETURNING id;
       `;
-
       return lot[0];
     });
-
+    
     return result;
   },
 
@@ -102,7 +101,8 @@ const lotModel = {
           ST_Y(l.location) AS latitude,
           ST_Distance(l.location, ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326)::geography) as distance,
           l.description, 
-          l."hasValet", 
+          l."hasValet",
+          l.images, 
           r.rating,
           COUNT(*) OVER()::integer AS total_count
         FROM 
@@ -130,7 +130,9 @@ const lotModel = {
           ST_Y(l.location) AS latitude,, 
           l.description, 
           l."hasValet", 
+          l.images,
           r.rating 
+          COUNT(*) OVER()::integer AS total_count,
         FROM 
           "Lot" l JOIN 
           "Review" r ON l.id = r."lotId" 
@@ -154,7 +156,9 @@ const lotModel = {
           ST_Y(l.location) AS latitude,
           l.description, 
           l."hasValet", 
+          l.images,
           r.rating 
+          COUNT(*) OVER()::integer AS total_count,
         FROM 
           "Lot" l JOIN 
           "Review" r ON l.id = r."lotId" 
@@ -180,6 +184,7 @@ const lotModel = {
         ...((!!lot.distance || lot.distance === 0) && { distance: lot.distance }),
         description: lot.description,
         hasValet: lot.hasValet,
+        images: lot.images || [],
         rating: lot.rating || null,
       })),
     };
