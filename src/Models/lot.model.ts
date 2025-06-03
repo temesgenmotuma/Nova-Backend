@@ -177,7 +177,7 @@ const lotModel = {
         name: lot.name,
         longitude: lot.longitude,
         latitude: lot.latitude,
-        ...(!!lot.distance && { distance: lot.distance }),
+        ...((!!lot.distance || lot.distance === 0) && { distance: lot.distance }),
         description: lot.description,
         hasValet: lot.hasValet,
         rating: lot.rating || null,

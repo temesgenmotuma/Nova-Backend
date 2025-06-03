@@ -7,9 +7,9 @@ import ModelError from "../Models/ModelError";
 
 const spotSchema = joi.object({
   numberOfSpots: joi.number().integer().empty("").default(0),
-    startingNumber: joi.number().integer().default(1).empty(""),
-    name: joi.string().default("P").empty(""),
-    floor: joi.number().integer().empty("").optional(),
+  startingNumber: joi.number().integer().default(1).empty(""),
+  name: joi.string().default("P").empty(""),
+  floor: joi.number().integer().empty("").optional(),
 });
 
 //TODO: numberOfSpots < capacity
