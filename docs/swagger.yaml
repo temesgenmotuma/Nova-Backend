@@ -417,14 +417,41 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: "#/components/schemas/LotCreateRequest"
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Parking Lot 1"
+                capacity:
+                  type: integer
+                  example: 100
+                location:
+                  type: object
+                  properties:
+                    latitude:
+                      type: number
+                      format: float
+                      example: 37.7749
+                    longitude:
+                      type: number
+                      format: float
+                      example: -122.4194
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                    description: The images of the lot
+            encoding:
+              images:
+                contentType: application/octet-stream 
       responses:
         "201":
           description: Successfully created parking lot
           content:
-            application/json:
+            application/json::
               schema:
                 type: object
                 properties:
@@ -450,7 +477,7 @@ paths:
                       longitude:
                         type: number
                         format: float
-                        example: -122.4194
+                        example: -122.4194       
         "400":
           $ref: "#/components/responses/400"
         "500":
@@ -951,6 +978,44 @@ paths:
           $ref: "#/components/responses/404"  
         "500":
           $ref: "#/components/responses/500" 
+  /reservations/history:
+    get:
+      tags:
+        - reservation
+      security:
+        - BearerAuth: []
+      summary: Get reservation history
+      description: Returns the reservation history for a customer.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: query
+          name: limit
+          description: The number of reservations to return
+          required: false
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: offset
+          description: The number of reservations to skip
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Successfully retrieved reservation history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Reservation"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+
 #TODO: Test this 
   /vehicles/{vehicleId}/reservations:
     get:
@@ -1748,6 +1813,12 @@ components:
               type: number
               format: float
               example: -122.4194
+        # images:
+        #             type: array
+        #             items:
+        #               type: string
+        #               format: binary
+        #               description: The images of the lot
         # spot:
         #   type: object
         #   properties:
@@ -1919,6 +1990,101 @@ components:
         status:
           type: string
           enum: [COMPLETE, ACTIVE, CANCELLED]
+    ReservationDetailsResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 6
+        reservations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              startTime:
+                type: string
+                format: date-time
+              endTime:
+                type: string
+                format: date-time
+              arrivalTime:
+                type: string
+                format: date-time
+                nullable: true
+              status:
+                type: string
+                enum: [ACTIVE, CANCELLED, COMPLETE]
+              createdAt:
+                type: string
+                format: date-time
+              updatedAt:
+                type: string
+                format: date-time
+              cancelledAt:
+                type: string
+                format: date-time
+                nullable: true
+              licensePlate:
+                type: string
+              spotId:
+                type: string
+                format: uuid
+              vehicleId:
+                type: string
+                format: uuid
+              spot:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                  floor:
+                    type: integer
+                  status:
+                    type: string
+                  zone:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      name:
+                        type: string
+                      lot:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          name:
+                            type: string
+                          provider:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                                format: uuid
+                              name:
+                                type: string
+              vehicle:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  make:
+                    type: string
+                  model:
+                    type: string
+                  color:
+                    type: string
+                  licensePlateNumber:
+                    type: string
     ReservationFetchResponse:
       type: object
       properties:

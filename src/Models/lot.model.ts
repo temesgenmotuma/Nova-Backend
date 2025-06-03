@@ -37,19 +37,24 @@ const lotModel = {
     `;
   },
 
-  async createLot(lot: createLotType, providerId: string) {
+  async createLot(lot: createLotType, providerId: string, images: Express.Multer.File[] ) {
     const {
       name: lotName,
       capacity,
       location: { latitude, longitude },
       description,
-      hasValet
+      hasValet,
       // spot: { name: spotName, numberOfSpots, floor, startingNumber },
     } = lot;
 
+    const imagesString =
+      images.length > 0
+        ? "{" + images.map((image) => image.path).join(",") + "}"
+        : "{}";
+
     const result = await db.$transaction(async (tx) => {
       const lot = await tx.$queryRaw<{ id: string }[]>`
-        INSERT INTO "Lot" (id, name, "providerId", location, capacity, "updatedAt", description, "hasValet") 
+        INSERT INTO "Lot" (id, name, "providerId", location, capacity, "updatedAt", description, "hasValet", images) 
         VALUES (
           gen_random_uuid(), 
           ${lotName}, 
@@ -58,29 +63,13 @@ const lotModel = {
           ${capacity}, 
           NOW(),
           ${description || null},
-          ${hasValet|| false}
+          ${hasValet || false},
+          ${imagesString}::text[]
         ) 
         RETURNING id;
       `;
-      return lot[0];
-      /*const id = lot[0]?.id;
 
-      let spots;
-      if (numberOfSpots > 0) {
-        const spotsArray = Array.from({ length: numberOfSpots }).map(
-          (_, i) => ({
-            name: `${spotName}${startingNumber + i}`,
-            floor: floor,
-            status: SpotStatus.Available,
-            zoneId: id,
-          })
-        );
-        spots = await tx.spot.createManyAndReturn({
-          data: spotsArray,
-        });
-      }
-      return spots; 
-      */
+      return lot[0];
     });
 
     return result;
@@ -234,3 +223,22 @@ const lotModel = {
 
 
 export default lotModel;
+
+/*const id = lot[0]?.id;
+
+      let spots;
+      if (numberOfSpots > 0) {
+        const spotsArray = Array.from({ length: numberOfSpots }).map(
+          (_, i) => ({
+            name: `${spotName}${startingNumber + i}`,
+            floor: floor,
+            status: SpotStatus.Available,
+            zoneId: id,
+          })
+        );
+        spots = await tx.spot.createManyAndReturn({
+          data: spotsArray,
+        });
+      }
+      return spots; 
+      */

@@ -42,6 +42,11 @@ const reservationQuerySchema = z
     }
   );
 
+const reservationHistoryQuerySchema = z.object({
+  limit: z.coerce.number().positive().optional().default(10),
+  offset: z.coerce.number().nonnegative().optional().default(0),
+});
+
 export type ReserveQueryType = z.infer<typeof reserveQuerySchema>;
 
 const futureIdSchema = z.string().uuid();
@@ -150,3 +155,30 @@ export const reserve = async (req: Request, res: Response) => {
       res.status(500).json({message: "Error getting reservations.", error: (error as Error).message});
     }
   }
+
+  export const getReservationsHistory = async (req: Request, res: Response) => {
+    const customerId = req?.user?.id as string;
+    const result = reservationHistoryQuerySchema.safeParse(req.query);
+  
+    if (!result.success) {
+      res.status(400).json({ message: "Invalid request", error: result.error });
+      return;
+    }
+  
+    const { limit, offset } = result.data;
+  
+    try {
+      const reservations = await reservationModel.getReservationsHistory(
+        customerId,
+        limit,
+        offset
+      );
+      res.json(reservations);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        message: "Error fetching reservation history.",
+        error: (error as Error).message,
+      });
+    }
+  };

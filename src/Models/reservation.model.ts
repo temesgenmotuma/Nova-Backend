@@ -303,6 +303,69 @@ const reservationModel = {
       },
     });
   },
+
+  async getReservationsHistory(customerId: string, limit: number, offset: number) {
+    const [reservations, count] = await Promise.all([
+      db.reservation.findMany({
+        where: {
+          vehicle: {
+            customerId,
+          },
+        },
+        take: limit,
+        skip: offset,
+        orderBy: {
+          startTime: "desc",
+        },
+        include: {
+          spot: {
+            select: {
+              id: true,
+              name: true,
+              floor: true,
+              status: true,
+              zone: {
+                select: {
+                  id: true,
+                  name: true,
+                  lot: {
+                    select: {
+                      id: true,
+                      name: true,
+                      provider: {
+                        select: {
+                          id: true,
+                          name: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              }
+            },
+          },
+          vehicle: {
+            select: {
+              id: true,
+              make: true,
+              model: true,
+              color: true,
+              licensePlateNumber: true,
+            },
+          },
+        },
+      }),
+      db.reservation.count({
+        where: {
+          vehicle: {
+            customerId,
+          },
+        },
+      }),
+    ]);
+
+    return { count, reservations };
+  },
 };
 
 export default reservationModel;

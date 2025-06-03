@@ -15,19 +15,22 @@ const spotSchema = joi.object({
 //TODO: numberOfSpots < capacity
 export const createLotSchema = z.object({
   name: z.string(),
-  capacity: z.number(),
-  location: z.object({
-    latitude: z.number(),
-    longitude: z.number(),
-  }),
+  capacity: z.coerce.number(),
+  location: z.preprocess((val) => {
+    if (typeof val === 'string') {
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        return val; 
+      }
+    }
+    return val; 
+  }, z.object({
+    latitude: z.coerce.number(),
+    longitude: z.coerce.number(),
+  })),
   description: z.string().optional().nullable().default(""),
-  hasValet: z.boolean().optional().default(false),
-  // address: z.object({
-  //   region: z.string(),
-  //   city: z.string(),
-  //   woreda: z.string(),
-  // }).optional(),
-  // spot: z.lazy(() => spotSchema).optional().default({}),
+  hasValet: z.coerce.boolean().optional().default(false),
 });
 
 const nearbyLotsQuerySchema = z.object({
@@ -66,7 +69,8 @@ export const createLot = async (req: Request, res: Response) => {
     return;
   }
   try {
-    const lot = await lotModel.createLot(value.data, providerId);
+    const files = Array.isArray(req.files) ? req.files : [];
+    const lot = await lotModel.createLot(value.data, providerId, files);
     res.status(201).json(lot);
   } catch (error) {
     console.error(error);
