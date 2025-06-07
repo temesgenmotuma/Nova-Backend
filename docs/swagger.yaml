@@ -1012,6 +1012,9 @@ paths:
                 lotId:
                   type: string
                   format: uuid
+                requestedValet:
+                  type: boolean
+                  example: false
       responses:
         "201":
           description: Successfully reserved parking spot

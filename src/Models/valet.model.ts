@@ -63,6 +63,7 @@ const valetModel = {
             id: valetId,
           },
         },
+        // spotId: reservationCust?.spot?.id ,
       },
       select: {
         id: true,

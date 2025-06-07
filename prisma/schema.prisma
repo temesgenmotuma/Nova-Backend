@@ -88,8 +88,8 @@ model Lot {
   createdAt   DateTime                              @default(now())
   updatedAt   DateTime                              @updatedAt
   description String?
-  hasValet    Boolean                               @default(false) 
-  images      String[] @default([]) 
+  hasValet    Boolean                               @default(false)
+  images      String[]                              @default([])
 
   providerId String
   provider   Provider @relation(fields: [providerId], references: [id])
@@ -169,15 +169,16 @@ model Vehicle {
 }
 
 model Reservation {
-  id           String            @id @default(uuid())
-  startTime    DateTime
-  endTime      DateTime
-  arrivalTime  DateTime?
-  status       ReservationStatus
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  cancelledAt  DateTime?
-  licensePlate String
+  id             String            @id @default(uuid())
+  startTime      DateTime
+  endTime        DateTime
+  arrivalTime    DateTime?
+  status         ReservationStatus
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  cancelledAt    DateTime?
+  licensePlate   String
+  requestedValet Boolean?
 
   spotId String
   spot   Spot   @relation(fields: [spotId], references: [id])
