@@ -9,6 +9,9 @@ import {
   getSpotsByLot,
   getLotsOfCurrProvider,
   getZonesByLot,
+  favoriteLot,
+  getFavoriteLots,
+  unfavoriteLot,
   // uploadLotImage
 } from "../Controllers/lot.controller";
 import { createZone } from "../Controllers/zone.controller";
@@ -47,5 +50,8 @@ router.get("/:lotId/spots", protect(["provider"]), getSpotsByLot);
 router.post("/:lotId/zones", protect(["provider"]), createZone);
 router.get("/:lotId/zones", protect(["provider", "customer"]), getZonesByLot);
 
+router.post("/:lotId/favorite", protect(["customer"]), favoriteLot);
+router.delete("/:lotId/favorite", protect(["customer"]), unfavoriteLot);
+router.get("/favorites", protect(["customer"]), getFavoriteLots);
 
 export default router;

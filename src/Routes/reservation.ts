@@ -11,7 +11,7 @@ const router = Router();
 
 router.post("", protect(["customer"]), reserve);
 router.get("", protect(["provider"]), getReservations); 
-router.delete("/:id", protect(["customer"]), cancelReservation);
+router.delete("/:id", protect(["customer", "provider"]), cancelReservation);
 router.get("/history", protect(["customer"]), getReservationsHistory);
 
 export default router;

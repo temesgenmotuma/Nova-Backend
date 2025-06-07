@@ -127,4 +127,49 @@ export const getZonesByLot = async (req: Request, res: Response) => {
     console.error(error);
     res.status(500).json({ message: "Error fetching zones" });
   }
-}
+};
+
+export const favoriteLot = async (req: Request, res: Response) => {
+  const parsedLotId = uuidSchema.safeParse(req.params.lotId);
+  if (!parsedLotId.success) {
+    res.status(400).json({ message: "Invalid lotId" });
+    return;
+  }
+  const lotId = parsedLotId.data;
+  const customerId = req.user?.id!;
+  try {
+    await lotModel.addFavoriteLot(customerId, lotId);
+    res.status(201).json({ message: "Lot favorited successfully." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error favoriting lot." });
+  }
+};
+
+export const unfavoriteLot = async (req: Request, res: Response) => {
+  const parsedLotId = uuidSchema.safeParse(req.params.lotId);
+  if (!parsedLotId.success) {
+    res.status(400).json({ message: "Invalid lotId" });
+    return;
+  }
+  const lotId = parsedLotId.data;
+  const customerId = req.user?.id!;
+  try {
+    await lotModel.removeFavoriteLot(customerId, lotId);
+    res.status(200).json({ message: "Lot unfavorited successfully." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error unfavoriting lot." });
+  }
+};
+
+export const getFavoriteLots = async (req: Request, res: Response) => {
+  const customerId = req.user?.id!;
+  try {
+    const favoriteLots = await lotModel.getFavoriteLots(customerId);
+    res.status(200).json(favoriteLots);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching favorite lots." });
+  }
+};

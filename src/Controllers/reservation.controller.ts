@@ -14,6 +14,7 @@ const reserveQuerySchema = z.object({
     //   /^\d{1,3}(AA|ET|UN|AU|AF|AM|BG|DR|GM|HR|OR|SM|CD|AO)([A-C]\d{5}|\d{5}|\d{4})$/
     // ),
     lotId: z.string().uuid(),
+    requestedValet: z.boolean().optional().default(false),
 });
 
 const reservationQuerySchema = z
@@ -26,7 +27,7 @@ const reservationQuerySchema = z
       .enum(["active", "cancelled", "complete"])
       .transform((value) => value.toUpperCase())
       .optional(),
-    limit: z.coerce.number().positive().optional().default(1),
+    limit: z.coerce.number().positive().optional().default(10),
     offset: z.coerce.number().optional().default(0),
   })
   .refine(
@@ -75,7 +76,7 @@ export const reserve = async (req: Request, res: Response) => {
       
       //lock the spot
       //wait until the user makes a payment.
-      const reservation = await reservationModel.reserve(freeSpot.id, result.data)
+      const reservation = await reservationModel.reserve(freeSpot.id, result.data, lotId)
       res.status(201).json(reservation);
       
     } catch (error) {
@@ -129,13 +130,17 @@ export const reserve = async (req: Request, res: Response) => {
     
     try {
       const reservation = await reservationModel.cancelReservation(id);
-      if(!reservation){
-        res.status(404).json({message: "Reservation not found."});
-        return; 
-      }
+      // if(!reservation){
+      //   res.status(404).json({message: "Reservation not found."});
+      //   return; 
+      // }
       res.status(204).json({message: "Reservation canceled."});
     } catch (error ) {
       console.error(error);
+      if(error instanceof ModelError){
+        res.status(error.statusCode).json({message: error.message});
+        return;
+      }
       res.status(500).json({message: "Error canceling reservation.", error: (error as Error).message})
     }
   }

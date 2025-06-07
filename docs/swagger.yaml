@@ -7,6 +7,8 @@ info:
 servers:
   - url: http://localhost:5000/v1
     description: Local development server
+  - url: https://6jm979tt-5000.euw.devtunnels.ms/v1
+    description: Azure Dev Tunnel server
 
 tags:
   - name: "customer"
@@ -526,12 +528,14 @@ paths:
           required: true
           schema:
             type: number
+            format: float
           description: Latitude of the location.
         - in: query
           name: longitude
           required: true
           schema:
             type: number
+            format: float
           description: Longitude of the location.
         - in: query
           name: radius
@@ -588,11 +592,117 @@ paths:
                           type: number
                           example: 450
                           description: (optional)Distance in meters from the given location.
+                        images:
+                          type: array
+                          items:
+                            type: string
+                            format: uri
+                            example: "Img3423.jpg"
         "400":
           $ref: "#/components/responses/400"
         "500":
           $ref: "#/components/responses/500"
-  
+  /lots/{lotId}/favorite:
+    post:
+      tags:
+        - lot
+      security:
+        - BearerAuth: []
+      summary: Favorite a parking lot
+      description: Allows a customer to favorite a parking lot.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: lotId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "201":
+          description: Successfully favorited the lot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lot favorited successfully."
+        "400":
+          $ref: "#/components/responses/400"
+        "500":
+          $ref: "#/components/responses/500"
+    delete:
+      tags:
+        - lot
+      security:
+        - BearerAuth: []
+      summary: Unfavorite a parking lot
+      description: Allows a customer to unfavorite a parking lot.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: lotId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Successfully unfavorited the lot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lot unfavorited successfully."
+        "400":
+          $ref: "#/components/responses/400"
+        "500":
+          $ref: "#/components/responses/500"
+  /lots/favorites:
+    get:
+      tags:
+        - lot
+      security:
+        - BearerAuth: []
+      summary: Get favorite lots
+      description: Retrieve all favorite parking lots for the authenticated customer.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+      responses:
+        "200":
+          description: Successfully retrieved favorite lots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    name:
+                      type: string
+                    capacity:
+                      type: integer
+                    description:
+                      type: string
+                    hasValet:
+                      type: boolean
+                    images:
+                      type: array
+                      items:
+                        type: string
+                    location:
+                      type: string
+        "500":
+          $ref: "#/components/responses/500"
+
 # Zone Endpoints
 # TODO: get EndPt: Yet to be implemented - High priority
   /lots/{lotId}/zones:
@@ -658,7 +768,63 @@ paths:
           $ref: "#/components/responses/400"
         "500":
           $ref: "#/components/responses/500"
-  
+  /zones/{zoneId}:
+    get:
+      tags:
+        - zone
+      security:
+        - BearerAuth: []
+      summary: Get a zone by ID
+      description: Fetches details of a specific zone by its ID.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: zoneId
+          description: The ID of the zone
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Successfully retrieved zone details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                  vehicleType:
+                    type: string
+                    nullable: true
+                  totalNumberOfSpots:
+                    type: integer
+                  spots:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        name:
+                          type: string
+                        floor:
+                          type: integer
+                        status:
+                          type: string
+                          enum: [Available, Reserved, Occupied]
+        "400":
+          $ref: "#/components/responses/400"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+
 # Spot Endpoints 
   /spots:
     post:
@@ -848,6 +1014,9 @@ paths:
                 lotId:
                   type: string
                   format: uuid
+                requestedValet:
+                  type: boolean
+                  example: false
       responses:
         "201":
           description: Successfully reserved parking spot
@@ -900,7 +1069,6 @@ paths:
           schema:
             type: string
             format: date-time
-            example: "2025-05-17T12:00:00Z"
         - in: query
           name: to
           description: To time
@@ -908,7 +1076,6 @@ paths:
           schema:
             type: string
             format: date-time
-            example: "2025-05-20T13:00:00Z"
         - in: query
           name: lotId
           description: The ID of the parking lot
@@ -1358,7 +1525,7 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/XClientType"
-      summary: Record vehicle entry
+      summary: (provider)Record vehicle entry
       description: Records the entry of a vehicle into a parking lot.
       requestBody:
         required: true
@@ -1418,7 +1585,7 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/XClientType"
-      summary: Record reservation vehicle entry
+      summary: (Provider)Record reservation vehicle entry
       description: Records the entry of a vehicle w/c reserved a spot into a parking lot.
       requestBody:
         required: true
@@ -1460,7 +1627,7 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/XClientType"
-      summary: Record vehicle exit for a non reservation customer
+      summary: (Provider)Record vehicle exit for a non reservation customer
       description: Records the exit of a vehicle from a parking lot.
       requestBody:
         required: true
@@ -1489,7 +1656,7 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/XClientType"
-      summary: Record vehicle exit for a reservation customer
+      summary: (Provider)Record vehicle exit for a reservation customer
       description: Records the exit of a vehicle from a parking lot.
       requestBody:
         required: true
@@ -1520,7 +1687,7 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/XClientType"
-      summary: Create a valet ticket
+      summary: (Provider-Valet)Create a valet ticket
       description: Creates a valet ticket for a vehicle.
       requestBody:
         required: true
@@ -1575,7 +1742,7 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/XClientType"
-      summary: Get all valet retrieval requests
+      summary: (Provider-Valet)Get all valet retrieval requests
       description: Returns all valet retrieval requests.
       responses:
         "200":
@@ -1605,7 +1772,7 @@ paths:
           schema:
             type: string
             format: uuid
-      summary: Make a vehicle retreival request
+      summary: (Customer)Make a vehicle retreival request
       description: Makes a vehicle retreival request 
       responses:
         "200":
@@ -1643,8 +1810,8 @@ paths:
           schema:
             type: string
             format: uuid
-      summary: Accept a valet ticket
-      description: Accepts a valet ticket for a vehicle.
+      summary: (Provider-Valet)Claim a valet ticket
+      description: Claim a valet ticket for a vehicle.
       responses:
         "200":
           description: Successfully accepted valet ticket
@@ -1675,8 +1842,8 @@ paths:
           schema:
             type: string
             format: uuid
-      summary: Complete a valet ticket
-      description: Completes a valet ticket for a vehicle.
+      summary: (Provider-Valet)Complete a valet ticket 
+      description: Completes a valet ticket for a vehicle. Triggered when the vehicle is returned to the customer.
       responses:
         "200":
           description: Successfully completed valet ticket
@@ -1692,6 +1859,76 @@ paths:
           $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
+
+  #Analytics Endpoints 
+  /analytics/peak-hours:
+    get:
+      tags:
+        - analytics
+      summary: Retrieve peak hour data
+      description: Returns the peak hour data for parking lots. Only accessible by admins.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+      responses:
+        "200":
+          description: Successfully retrieved peak hour data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  peakHour:
+                    type: string
+                    example: "17:00"
+                    description: The peak hour for reservations.
+                  totalReservations:
+                    type: integer
+                    example: 120
+                    description: Total number of reservations during the peak hour.
+        "403":
+          description: Access denied. Only admins can access this resource.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Access denied. Only admins can access this resource."
+        "401":
+          description: Unauthorized access due to missing or invalid authentication.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unauthorized: No authorization header provided."
+        "500":
+          description: Internal server error while retrieving peak hour data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Error retrieving peak hour data."
+                  error:
+                    type: string
+                    example: "Database connection failed."
+  # /analytics/getActiveReservations
+  #   get:
+  #     tags:
+
+
+
+
+
+ 
 
 components:
   securitySchemes:
@@ -1908,45 +2145,47 @@ components:
             example: 37.7749
     Spot:
       type: array
-      items:
-        type: object
-        properties:
-          id:
-            type: string
-            example: "12345"
-          name:
-            type: string
-            example: "P1"
-          floor:
-            type: integer
-            example: 1
-          zoneId:
-            type: string
-            example: "12345"
-          number:
-            type: integer
-            example: 1
-          status:
-            type: string
-            enum: [available, occupied, reserved]
-            example: "available"
-          price:
-            type: number
-            format: float
-            example: 10.50 
-          createdAt:
-            type: string
-            format: date-time
-            example: "2021-08-01T12:00:00Z"
-          updatedAt:
-            type: string
-            format: date-time
-            example: "2021-08-01T12:00:00Z"
-          OccupationType:
-            type: string
-            enum: [NONRESERVATOIN, RESERVATION]
-            example: "RESERVATION"
-            nullable: true
+      items: 
+        $ref: "#/components/schemas/SpotObject"
+    SpotObject:    
+      type: object
+      properties:
+        id:
+          type: string
+          example: "12345"
+        name:
+          type: string
+          example: "P1"
+        floor:
+          type: integer
+          example: 1
+        zoneId:
+          type: string
+          example: "12345"
+        number:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [available, occupied, reserved]
+          example: "available"
+        price:
+          type: number
+          format: float
+          example: 10.50 
+        createdAt:
+          type: string
+          format: date-time
+          example: "2021-08-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2021-08-01T12:00:00Z"
+        OccupationType:
+          type: string
+          enum: [NONRESERVATOIN, RESERVATION]
+          example: "RESERVATION"
+          nullable: true
     Vehicle:
       type: object
       properties:
@@ -2101,7 +2340,7 @@ components:
                   vehicle:
                     $ref: "#/components/schemas/Vehicle"
                   spot: 
-                    $ref: "#/components/schemas/Spot"
+                    $ref: "#/components/schemas/SpotObject"
     EntryTicket:
       type: object
       properties:

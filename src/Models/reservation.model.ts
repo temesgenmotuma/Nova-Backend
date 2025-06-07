@@ -70,21 +70,24 @@ const reservationModel = {
           return null;
         } */
   },
-  async reserve(spotId: string, reservation: ReserveQueryType) {
+  async reserve(spotId: string, reservation: ReserveQueryType, lotId: string) {
+    const lot = await db.lot.findFirst({
+      where:{
+        id: lotId,
+      },
+      select:{
+        hasValet: true,
+      }
+      });
+
+    if(!lot) {
+      reservation.requestedValet = false;
+    }
+
     const result = await db.$transaction(async (tx) => {
       //lock the row
       await tx.$executeRaw`SELECT * FROM "Spot" WHERE id=${spotId} FOR UPDATE;`;
-
-      /* await tx.reservation.create({
-            data:{
-              startTime: reservation.startTime,
-              endTime: reservation.endTime,
-              vehicleId: reservation.vehicleId,
-              spotId: spotId,
-              status: "ACTIVE",   
-            },        
-          });
-     */
+      
       //TODO:payment likely to go in here
 
       //create a reservation record and update the status in spot to reserved
@@ -115,6 +118,7 @@ const reservationModel = {
               vehicleId: reservation.vehicleId,
               licensePlate: vehicle.licensePlateNumber,
               status: "ACTIVE",
+              requestedValet: reservation.requestedValet || false,
             },
           },
         },
@@ -194,6 +198,12 @@ const reservationModel = {
               name: true,
               floor: true,
               status: true,
+              zone: {
+                select:{
+                  id: true,
+                  name: true 
+                }
+              }
             },
           },
           vehicle: {
@@ -223,6 +233,17 @@ const reservationModel = {
   },
 
   async cancelReservation(reservationId: string) {
+    //find the reservation
+    const reservation = await db.reservation.findUnique({
+      where: {
+        id: reservationId,
+        status: "ACTIVE", 
+      },
+    });
+    if (!reservation) {
+      throw new ModelError("Reservation not found or already cancelled", 404);
+    }
+      
     //free the spot
     //mark the reservation as cancelled
     return await db.reservation.update({

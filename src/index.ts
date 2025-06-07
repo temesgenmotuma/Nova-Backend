@@ -1,6 +1,6 @@
 import express from "express";
-// import './types/express';
 import fs from "node:fs";
+import path from "node:path";
 import cors from "cors";
 import yaml from "yaml";
 import dotenv from "dotenv";
@@ -21,6 +21,7 @@ import zoneRoutes from "./Routes/zone";
 import valetRoutes from "./Routes/valet";
 import alertRoutes from "./Routes/alert";
 import reviewRoutes from "./Routes/review";
+import analyticsRoutes from "./Routes/analytics";
 
 import swaggerUi from "swagger-ui-express";
 const swaggerDocument = yaml.parse(
@@ -30,6 +31,13 @@ const swaggerDocument = yaml.parse(
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use(express.json());
 app.use(cors());
+
+const uploadDir = path.join(__dirname, '..', 'uploads', 'lots');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true }); 
+}
+app.use('/uploads/lots', express.static(uploadDir));
+
 
 app.use("/v1/customer", customerRoutes);
 app.use("/v1/employees", employeeRoutes);
@@ -42,6 +50,7 @@ app.use("/v1/reservations", reservationRoutes);
 app.use("/v1/valet", valetRoutes);
 app.use("/v1/alert", alertRoutes);
 app.use("/v1/reviews", reviewRoutes);
+app.use("/v1/analytics", analyticsRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
