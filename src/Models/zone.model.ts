@@ -52,6 +52,24 @@ const zoneModel = {
       },
     });
   },
+
+  async getZoneById(zoneId: string) {
+    return await db.zone.findUnique({
+      where: {
+        id: zoneId,
+      },
+      include: {
+        spots: {
+          select: {
+            id: true,
+            name: true,
+            floor: true,
+            status: true,
+          },
+        },
+      },
+    });
+  },
 };
 
 export default zoneModel;

@@ -73,3 +73,22 @@ export const getSpotsOfZone = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error", error: (error as Error).message,});
   }
 };
+
+export const getZoneById = async (req: Request, res: Response) => {
+  const parsedZoneId = uuidSchema.safeParse(req.params.zoneId);
+  if (!parsedZoneId.success) {
+    res.status(400).json({ message: "Missing or Invalid id" });
+    return;
+  }
+  try {
+    const zone = await zoneModel.getZoneById(parsedZoneId.data);
+    if (!zone) {
+      res.status(404).json({ message: "Zone not found" });
+      return;
+    }
+    res.json(zone);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error", error: (error as Error).message });
+  }
+};
