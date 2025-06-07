@@ -7,6 +7,8 @@ info:
 servers:
   - url: http://localhost:5000/v1
     description: Local development server
+  - url: https://6jm979tt-5000.euw.devtunnels.ms/v1
+    description: Azure Dev Tunnel server
 
 tags:
   - name: "customer"
@@ -1067,7 +1069,6 @@ paths:
           schema:
             type: string
             format: date-time
-            example: "2025-05-17T12:00:00Z"
         - in: query
           name: to
           description: To time
@@ -1075,7 +1076,6 @@ paths:
           schema:
             type: string
             format: date-time
-            example: "2025-05-20T13:00:00Z"
         - in: query
           name: lotId
           description: The ID of the parking lot
@@ -1860,6 +1860,76 @@ paths:
         "500":
           $ref: "#/components/responses/500"
 
+  #Analytics Endpoints 
+  /analytics/peak-hours:
+    get:
+      tags:
+        - analytics
+      summary: Retrieve peak hour data
+      description: Returns the peak hour data for parking lots. Only accessible by admins.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+      responses:
+        "200":
+          description: Successfully retrieved peak hour data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  peakHour:
+                    type: string
+                    example: "17:00"
+                    description: The peak hour for reservations.
+                  totalReservations:
+                    type: integer
+                    example: 120
+                    description: Total number of reservations during the peak hour.
+        "403":
+          description: Access denied. Only admins can access this resource.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Access denied. Only admins can access this resource."
+        "401":
+          description: Unauthorized access due to missing or invalid authentication.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unauthorized: No authorization header provided."
+        "500":
+          description: Internal server error while retrieving peak hour data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Error retrieving peak hour data."
+                  error:
+                    type: string
+                    example: "Database connection failed."
+  # /analytics/getActiveReservations
+  #   get:
+  #     tags:
+
+
+
+
+
+ 
+
 components:
   securitySchemes:
     BearerAuth:
@@ -2075,45 +2145,47 @@ components:
             example: 37.7749
     Spot:
       type: array
-      items:
-        type: object
-        properties:
-          id:
-            type: string
-            example: "12345"
-          name:
-            type: string
-            example: "P1"
-          floor:
-            type: integer
-            example: 1
-          zoneId:
-            type: string
-            example: "12345"
-          number:
-            type: integer
-            example: 1
-          status:
-            type: string
-            enum: [available, occupied, reserved]
-            example: "available"
-          price:
-            type: number
-            format: float
-            example: 10.50 
-          createdAt:
-            type: string
-            format: date-time
-            example: "2021-08-01T12:00:00Z"
-          updatedAt:
-            type: string
-            format: date-time
-            example: "2021-08-01T12:00:00Z"
-          OccupationType:
-            type: string
-            enum: [NONRESERVATOIN, RESERVATION]
-            example: "RESERVATION"
-            nullable: true
+      items: 
+        $ref: "#/components/schemas/SpotObject"
+    SpotObject:    
+      type: object
+      properties:
+        id:
+          type: string
+          example: "12345"
+        name:
+          type: string
+          example: "P1"
+        floor:
+          type: integer
+          example: 1
+        zoneId:
+          type: string
+          example: "12345"
+        number:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [available, occupied, reserved]
+          example: "available"
+        price:
+          type: number
+          format: float
+          example: 10.50 
+        createdAt:
+          type: string
+          format: date-time
+          example: "2021-08-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2021-08-01T12:00:00Z"
+        OccupationType:
+          type: string
+          enum: [NONRESERVATOIN, RESERVATION]
+          example: "RESERVATION"
+          nullable: true
     Vehicle:
       type: object
       properties:
@@ -2268,7 +2340,7 @@ components:
                   vehicle:
                     $ref: "#/components/schemas/Vehicle"
                   spot: 
-                    $ref: "#/components/schemas/Spot"
+                    $ref: "#/components/schemas/SpotObject"
     EntryTicket:
       type: object
       properties:

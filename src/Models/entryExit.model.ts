@@ -238,6 +238,17 @@ const entryExitModel = {
         vehicleId: reservation.vehicle.id,
       },
     });
+
+    //Should this be here?
+    db.spot.update({
+      where: {
+        id: reservation.spotId,
+      },
+      data: {
+        status: "Occupied",
+      },
+    });
+
     return ticket
   },
 

@@ -21,6 +21,7 @@ import zoneRoutes from "./Routes/zone";
 import valetRoutes from "./Routes/valet";
 import alertRoutes from "./Routes/alert";
 import reviewRoutes from "./Routes/review";
+import analyticsRoutes from "./Routes/analytics";
 
 import swaggerUi from "swagger-ui-express";
 const swaggerDocument = yaml.parse(
@@ -49,6 +50,7 @@ app.use("/v1/reservations", reservationRoutes);
 app.use("/v1/valet", valetRoutes);
 app.use("/v1/alert", alertRoutes);
 app.use("/v1/reviews", reviewRoutes);
+app.use("/v1/analytics", analyticsRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
