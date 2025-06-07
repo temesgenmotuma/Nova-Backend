@@ -21,6 +21,7 @@ model Customer {
   valetTickets ValetTicket[]
   alerts       Alert[]
   reviews      Review[]
+  favoriteLots FavoriteLot[] // Added relation field
 }
 
 model Provider {
@@ -98,6 +99,7 @@ model Lot {
   invitations Invitation[]
   employees   Employee[]
   review      Review[]
+  favoriteLots FavoriteLot[] // Added relation field
 
   @@index([location], name: "location_idx", type: Gist)
 }
@@ -297,4 +299,15 @@ model Review {
 
   lotId String
   lot   Lot    @relation(fields: [lotId], references: [id])
+}
+
+model FavoriteLot {
+  id         String   @id @default(uuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+  lotId      String
+  lot        Lot      @relation(fields: [lotId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([customerId, lotId], name: "customer_lot_unique")
 }

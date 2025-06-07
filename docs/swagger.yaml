@@ -600,7 +600,107 @@ paths:
           $ref: "#/components/responses/400"
         "500":
           $ref: "#/components/responses/500"
-  
+  /lots/{lotId}/favorite:
+    post:
+      tags:
+        - lot
+      security:
+        - BearerAuth: []
+      summary: Favorite a parking lot
+      description: Allows a customer to favorite a parking lot.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: lotId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "201":
+          description: Successfully favorited the lot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lot favorited successfully."
+        "400":
+          $ref: "#/components/responses/400"
+        "500":
+          $ref: "#/components/responses/500"
+    delete:
+      tags:
+        - lot
+      security:
+        - BearerAuth: []
+      summary: Unfavorite a parking lot
+      description: Allows a customer to unfavorite a parking lot.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: lotId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Successfully unfavorited the lot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lot unfavorited successfully."
+        "400":
+          $ref: "#/components/responses/400"
+        "500":
+          $ref: "#/components/responses/500"
+  /lots/favorites:
+    get:
+      tags:
+        - lot
+      security:
+        - BearerAuth: []
+      summary: Get favorite lots
+      description: Retrieve all favorite parking lots for the authenticated customer.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+      responses:
+        "200":
+          description: Successfully retrieved favorite lots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    name:
+                      type: string
+                    capacity:
+                      type: integer
+                    description:
+                      type: string
+                    hasValet:
+                      type: boolean
+                    images:
+                      type: array
+                      items:
+                        type: string
+                    location:
+                      type: string
+        "500":
+          $ref: "#/components/responses/500"
+
 # Zone Endpoints
 # TODO: get EndPt: Yet to be implemented - High priority
   /lots/{lotId}/zones:

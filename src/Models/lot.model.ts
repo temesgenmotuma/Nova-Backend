@@ -223,9 +223,46 @@ const lotModel = {
       //   },
       // },
     });
-  }
-};
+  },
 
+  async addFavoriteLot(customerId: string, lotId: string) {
+    await db.favoriteLot.create({
+      data: {
+        customerId,
+        lotId,
+      },
+    });
+  },
+
+  async removeFavoriteLot(customerId: string, lotId: string) {
+    await db.favoriteLot.delete({
+      where: { 
+        customer_lot_unique:{
+          customerId,
+          lotId,
+        }
+      },
+    });
+  },
+
+  async getFavoriteLots(customerId: string) {
+    return await db.favoriteLot.findMany({
+      where: { customerId },
+      include: {
+        lot: {
+          select: {
+            id: true,
+            name: true,
+            capacity: true,
+            description: true,
+            hasValet: true,
+            images: true,
+          },
+        },
+      },
+    });
+  },
+};
 
 export default lotModel;
 
