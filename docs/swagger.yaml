@@ -429,6 +429,8 @@ paths:
                 capacity:
                   type: integer
                   example: 100
+                description:
+                  type: string
                 location:
                   type: object
                   properties:
@@ -440,6 +442,9 @@ paths:
                       type: number
                       format: float
                       example: -122.4194
+                hasValet:
+                  type: boolean
+                  example: false
                 images:
                   type: array
                   items:
@@ -588,6 +593,9 @@ paths:
                           type: number
                           format: float
                           example: 4.5
+                        address:
+                          type: string
+                          example: "123 Main St, San Francisco, CA 94105"
                         distance:
                           type: number
                           example: 450
@@ -728,11 +736,11 @@ paths:
                       type: array
                       items:
                         type: string
-                    location:
+                    address:
                       type: string
+                      example: "123 Main St, San Francisco, CA 94105"
         "500":
           $ref: "#/components/responses/500"
-
 
 # Zone Endpoints
 # TODO: get EndPt: Yet to be implemented - High priority

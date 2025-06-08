@@ -1,9 +1,12 @@
 import joi from "joi";
 import {z} from "zod";
 import { Request, Response } from "express";
+
 import lotModel from "../Models/lot.model";
-import { hasPermission } from "../utils/permission";
 import ModelError from "../Models/ModelError";
+import  {reverseGeocode}  from "../utils/reverseGeocode";
+import { hasPermission } from "../utils/permission";
+
 
 const spotSchema = joi.object({
   numberOfSpots: joi.number().integer().empty("").default(0),
@@ -12,7 +15,6 @@ const spotSchema = joi.object({
   floor: joi.number().integer().empty("").optional(),
 });
 
-//TODO: numberOfSpots < capacity
 export const createLotSchema = z.object({
   name: z.string(),
   capacity: z.coerce.number(),
@@ -62,15 +64,23 @@ export const getLotsOfCurrProvider = async (req: Request, res: Response) => {
 };
 
 export const createLot = async (req: Request, res: Response) => {
+  const role = req.user?.role;
+  if (!hasPermission(req.user!, "create:lot")) {
+    res.status(403).json({ message: `${role} is not authorized to access this.` });
+    return;
+  }
+  
   const providerId = req.user?.providerId!;
   const value = createLotSchema.safeParse(req.body);
   if (!value.success) {
     res.status(400).json({ error: value.error.errors });
     return;
   }
+
   try {
+    // const address = await reverseGeocode(value.data.location.latitude, value.data.location.longitude);
     const files = Array.isArray(req.files) ? req.files : [];
-    const lot = await lotModel.createLot(value.data, providerId, files);
+    const lot = await lotModel.createLot(value.data, providerId/* , address */, files);
     res.status(201).json(lot);
   } catch (error) {
     console.error(error);
@@ -79,7 +89,7 @@ export const createLot = async (req: Request, res: Response) => {
 };
 
 export const getSpotsByLot = async (req: Request, res: Response) => {
-  const provId = req.user?.providerId as string;
+  const provId = req.user?.providerId!;
   const lotId = req.params.lotId as string;
   if (!lotId) {
     res.status(400).json({ message: "lotId is required" });

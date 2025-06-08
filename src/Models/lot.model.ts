@@ -1,9 +1,10 @@
-import db from "../Db/db";
+import path from "path";
 
+import db from "../Db/db";
 import { nearbyLotsQueryType } from "../Controllers/lot.controller";
 import { createLotType } from "../Controllers/lot.controller";
 import ModelError from "./ModelError";
-import path from "path";
+import {reverseGeocode} from "../utils/reverseGeocode";
 
 const constructSortString = (sortBy: string, lng: any, lat: any, location: any) => {
   let sortString: string = "";
@@ -38,23 +39,29 @@ const lotModel = {
     `;
   },
 
-  async createLot(lot: createLotType, providerId: string, images: Express.Multer.File[] ) {
+  async createLot(lot: createLotType, providerId: string/* , address: string|null */, images: Express.Multer.File[] ) {
     const {
       name: lotName,
       capacity,
       location: { latitude, longitude },
       description,
       hasValet,
-      // spot: { name: spotName, numberOfSpots, floor, startingNumber },
     } = lot;
 
-    const imagePathsToStore = images.map((image) => {
-      return path.basename(image.path);
-    });
+    const imagePathsToStore = images
+      .filter((image) => {
+        const baseName = path.basename(image.path);
+        const extName = path.extname(image.path);
+        return !baseName.startsWith("blob") && extName !== "";
+      })
+      .map((image) => {
+        return path.basename(image.path);
+      });
+      const tmp = path.extname(images[0].path);
 
     const result = await db.$transaction(async (tx) => {
       const lot = await tx.$queryRaw<{ id: string }[]>`
-        INSERT INTO "Lot" (id, name, "providerId", location, capacity, "updatedAt", description, "hasValet", images) 
+        INSERT INTO "Lot" (id, name, "providerId", location, capacity, "updatedAt", description, "hasValet", address, images) 
         VALUES (
           gen_random_uuid(), 
           ${lotName}, 
@@ -70,7 +77,7 @@ const lotModel = {
       `;
       return lot[0];
     });
-    
+
     return result;
   },
 
@@ -102,6 +109,7 @@ const lotModel = {
           ST_Distance(l.location, ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326)::geography) as distance,
           l.description, 
           l."hasValet",
+          -- l.address,
           l.images, 
           r.rating,
           COUNT(*) OVER()::integer AS total_count
@@ -174,21 +182,26 @@ const lotModel = {
       throw new ModelError("Invalid sortBy value. Use 'distance' or 'price'.", 400);
     }
 
+    const formattedLots: any[] = [];
+    for (const lot of lots) {
+      formattedLots.push({
+      id: lot.id,
+      name: lot.name,
+      longitude: lot.longitude,
+      latitude: lot.latitude,
+      ...((!!lot.distance || lot.distance === 0) && { distance: lot.distance }),
+      description: lot.description,
+      hasValet: lot.hasValet,
+      images: lot.images || [],
+      rating: lot.rating || null,
+      address: await reverseGeocode(lot.latitude, lot.longitude) || null,
+      });
+    }
+
     return {
       count: lots.length !== 0 ? lots[0]?.total_count : 0,
-      lots: lots.map((lot: any) => ({
-        id: lot.id,
-        name: lot.name,
-        longitude: lot.longitude,
-        latitude: lot.latitude,
-        ...((!!lot.distance || lot.distance === 0) && { distance: lot.distance }),
-        description: lot.description,
-        hasValet: lot.hasValet,
-        images: lot.images || [],
-        rating: lot.rating || null,
-      })),
+      lots: formattedLots
     };
-
   },
 
   async getLotsInBoundingBox(body: any) {
@@ -246,22 +259,49 @@ const lotModel = {
   },
 
   async getFavoriteLots(customerId: string) {
-    return await db.favoriteLot.findMany({
+    const lots:any[] = await db.$queryRaw`
+      SELECT 
+          l.name, 
+          -- price, 
+          ST_X(l.location) AS longitude, 
+          ST_Y(l.location) AS latitude,
+          l.description, 
+          l."hasValet",
+          -- address,
+          l.images, 
+          r.rating
+        FROM 
+          "FavoriteLot" fl JOIN
+          "Lot" l ON fl."lotId" = l.id LEFT JOIN
+          "Review" r ON l.id = r."lotId"
+        WHERE
+          fl."customerId" = ${customerId}
+        ;
+    `;
+
+    const count = await db.favoriteLot.count({
       where: { customerId },
-      include: {
-        lot: {
-          select: {
-            id: true,
-            name: true,
-            capacity: true,
-            description: true,
-            hasValet: true,
-            images: true,
-          },
-        },
-      },
     });
+
+    const finalLots: any[] =[];
+    for (const lot of lots) {
+      finalLots.push({
+        id: lot.id,
+        name: lot.name,
+        description: lot.description,
+        hasValet: lot.hasValet,
+        images: lot.images || [],
+        rating: lot.rating || null,
+        address: await reverseGeocode(lot.latitude, lot.longitude) || null,
+      });
+    } 
+    
+    return {
+      count,
+      lots: finalLots
+    }
   },
+
   async isLotFavoritedByCustomer(customerId: string, lotId: string) {
     const favorite = await db.favoriteLot.findUnique({
       where: {
@@ -295,3 +335,16 @@ export default lotModel;
       }
       return spots; 
       */
+
+       // lots: lots.map(async (lot: any) => ({
+      //   id: lot.id,
+      //   name: lot.name,
+      //   longitude: lot.longitude,
+      //   latitude: lot.latitude,
+      //   ...((!!lot.distance || lot.distance === 0) && { distance: lot.distance }),
+      //   description: lot.description,
+      //   hasValet: lot.hasValet,
+      //   images: lot.images || [],
+      //   rating: lot.rating || null,
+      //   address: await reverseGeocode(lot.latitude, lot.longitude) || null,
+      // })),
