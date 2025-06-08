@@ -213,7 +213,7 @@ paths:
                   example: "user@example.com"  
                 role:
                   type: string
-                  enum: [admin, valet]
+                  enum: [Admin, Valet, Attendant]
                   example: "admin"
                 lot:
                   type: string
@@ -1058,6 +1058,8 @@ paths:
                 $ref: "#/components/schemas/Spot"
         "400":
           $ref: "#/components/responses/400"
+        "409":
+          $ref: "#/components/responses/409"
         "404":
           $ref: "#/components/responses/404"
         "500":
@@ -1068,7 +1070,7 @@ paths:
         - reservation
       security:
         - BearerAuth: []
-      summary: Get all reservations
+      summary: (Provider)Get all reservations
       description: Returns all reservations.
       parameters:
         - $ref: "#/components/parameters/XClientType"
@@ -1297,7 +1299,7 @@ paths:
                   example: "Black"
                 licensePlateNumber:
                   type: string
-                  example: "12345"
+                  example: "1AAB45323"
       responses:
         "201":
           description: Successfully created vehicle
@@ -1568,9 +1570,9 @@ paths:
                 zoneId:
                   type: string
                   format: uuid
-                # lotId: 
-                #   type: string
-                #   format: uuid
+                lotId: 
+                  type: string
+                  format: uuid
                 phoneNumber:
                   type: string
                   example: 0912131415
@@ -1589,10 +1591,6 @@ paths:
               required:
                 - licensePlate
                 - phoneNumber
-                # entryTime:
-                #   type: string
-                #   format: date-time
-                #   example: "2021-08-01T12:00:00Z"
       responses:
         "200":
           description: Successfully recorded vehicle entry
@@ -1646,6 +1644,8 @@ paths:
                 $ref: "#/components/schemas/EntryResponse"
         "400":
           $ref: "#/components/responses/400"
+        "409":
+          $ref: "#/components/responses/409"
         "404":
           $ref: "#/components/responses/404"
         "500":
@@ -1670,11 +1670,18 @@ paths:
                 phoneNumber:
                   type: string
                   example: 0912131415
+                lotId:
+                  type: string
+                  format: uuid
+              required:
+                - phoneNumber
       responses:
         "204":
           $ref: "#/components/responses/204"
         "400":
           $ref: "#/components/responses/400"
+        "409":
+          $ref: "#/components/responses/409"
         "404":
           $ref: "#/components/responses/404"
         "500":
@@ -1959,6 +1966,7 @@ paths:
 
 
 
+
  
 
 components:
@@ -2231,6 +2239,7 @@ components:
           type: string
         licensePlateNumber:
           type: string
+          example: "1AAB45323"
         deletedAt:
           type: string
           format: date-time

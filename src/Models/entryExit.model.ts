@@ -21,6 +21,7 @@ const entryExitModel = {
             },
           },
           {
+            //no reservation starts or ends at any time after now
             reservations: {
               none: {
                 OR: [
@@ -199,6 +200,21 @@ const entryExitModel = {
   },
 
   async reservationEntry(licensePlate: string, phone:string, lotId: string) {
+    const existingTicket = await db.entryTicket.findFirst({
+      where: {
+        phoneNumber: phone,
+        status: "ACTIVE",
+        licensePlate: licensePlate,
+      },
+    });
+
+    if (existingTicket) {
+      throw new ModelError(
+        "There is an existing active ticket with this phone number",
+        409
+      );
+    }
+    
     const reservation = await db.reservation.findFirst({
       where: {
         licensePlate,
@@ -227,6 +243,9 @@ const entryExitModel = {
         },
       },
     });
+
+    //TODO: Check if there is an existing active ticket for this phone number
+    //TODO: Store the reservation id in the ticket
 
     if(!reservation) throw new ModelError("Reservation not found", 404);
     const ticket = await db.entryTicket.create({
@@ -269,41 +288,68 @@ const entryExitModel = {
       include: {
         vehicle: {
           select: {
+            reservations: {
+              where: {
+                status: "ACTIVE",
+                spot: {
+                  zone: {
+                    lotId: lotId,
+                  },
+                },
+              },
+              select: {
+                id: true,
+              },
+            },
             id: true,
           },
         },
       },
     });
-    if (ticket.length === 0) throw new ModelError("Ticket not found", 404);
+
+    if (ticket.length === 0)
+      throw new ModelError("No active ticket found for this vehicle", 404);
+
     if (ticket.length > 1)
       throw new ModelError(
         "Internal server error: More than 1 ticket for one phone",
         500
       );
 
-    await db.entryTicket.updateMany({
-      where: {
-        phoneNumber: phone,
-      },
-      data: {
-        status: "COMPLETED",
-        exitTime: new Date(),
-      },
-    });
+    const reservation = ticket[0].vehicle.reservations;
+    if (reservation.length > 1) {
+      throw new ModelError(
+        "Multiple active reservations found for this vehicle",
+        500
+      );
+    }
 
-
-    //update reservation status
-    await db.reservation.update({
-      where:{
-        id: ticket[0].vehicle.id,
-      },
-      data: {
-        status: "COMPLETE",
-      }
-    })
-    //check if an active ticket exists
-    //update the ticket
-    //update the spot
+    await db.$transaction([
+      db.entryTicket.updateMany({
+        where: {
+          phoneNumber: phone,
+          status: "ACTIVE",
+        },
+        data: {
+          status: "COMPLETED",
+          exitTime: new Date(),
+        },
+      }),
+      db.reservation.update({
+        where: {
+          id: ticket[0].vehicle.reservations[0].id,
+        },
+        data: {
+          status: "COMPLETE",
+          spot:{
+            update:{
+              status: "Available",
+              occupationType: null,
+            }
+          }
+        },
+      }),
+    ]);
   },
 };
 
