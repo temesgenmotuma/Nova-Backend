@@ -663,6 +663,36 @@ paths:
           $ref: "#/components/responses/400"
         "500":
           $ref: "#/components/responses/500"
+    get:
+      tags:
+        - lot
+      security:
+        - BearerAuth: []
+      summary: Check if a parking lot is favorited
+      description: Checks if a parking lot is favorited by the authenticated customer.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: lotId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Successfully checked if the lot is favorited
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isFavorited:
+                    type: boolean
+                    example: true
+        "400":
+          $ref: "#/components/responses/400"
+        "500":
+          $ref: "#/components/responses/500"
   /lots/favorites:
     get:
       tags:
@@ -702,6 +732,7 @@ paths:
                       type: string
         "500":
           $ref: "#/components/responses/500"
+
 
 # Zone Endpoints
 # TODO: get EndPt: Yet to be implemented - High priority
