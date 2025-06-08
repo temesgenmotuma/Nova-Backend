@@ -48,7 +48,7 @@ app.use("/v1/zones", zoneRoutes);
 app.use("/v1/vehicles", vehicleRoutes);
 app.use("/v1/reservations", reservationRoutes);
 app.use("/v1/valet", valetRoutes);
-app.use("/v1/alert", alertRoutes);
+app.use("/v1/alerts", alertRoutes);
 app.use("/v1/reviews", reviewRoutes);
 app.use("/v1/analytics", analyticsRoutes);
 

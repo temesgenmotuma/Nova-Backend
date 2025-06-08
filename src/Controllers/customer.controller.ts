@@ -72,16 +72,16 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       email: email,
       password: password,
     });
-    if (error) throw error;
+    if (error) throw new ModelError(error.message, 500);
 
     const customer = await customerModel.getCustomerByEmail(email);
     res.json({token: data.session.access_token, customer});
   } catch (error) {
     console.error(error);
-   /*  if (error instanceof ModelError) {
+    if (error instanceof ModelError) {
       res.status(error.statusCode).json({ error: error.message });
       return;
-    } */
+    }
     res.status(500).json({ error: "Error Logging in." });
   }
 };
