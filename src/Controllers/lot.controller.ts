@@ -173,3 +173,21 @@ export const getFavoriteLots = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Error fetching favorite lots." });
   }
 };
+
+export const isLotFavorited = async (req: Request, res: Response) => {
+  const parsedLotId = uuidSchema.safeParse(req.params.lotId);
+  if (!parsedLotId.success) {
+    res.status(400).json({ message: "Invalid lotId" });
+    return;
+  }
+  const lotId = parsedLotId.data;
+  const customerId = req.user?.id!;
+  
+  try {
+    const isFavorited = await lotModel.isLotFavoritedByCustomer(customerId, lotId);
+    res.status(200).json({ isFavorited });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error checking if lot is favorited." });
+  }
+};

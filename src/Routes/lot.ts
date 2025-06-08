@@ -12,6 +12,7 @@ import {
   favoriteLot,
   getFavoriteLots,
   unfavoriteLot,
+  isLotFavorited,
   // uploadLotImage
 } from "../Controllers/lot.controller";
 import { createZone } from "../Controllers/zone.controller";
@@ -53,5 +54,6 @@ router.get("/:lotId/zones", protect(["provider", "customer"]), getZonesByLot);
 router.post("/:lotId/favorite", protect(["customer"]), favoriteLot);
 router.delete("/:lotId/favorite", protect(["customer"]), unfavoriteLot);
 router.get("/favorites", protect(["customer"]), getFavoriteLots);
+router.get("/:lotId/favorite", protect(["customer"]), isLotFavorited);
 
 export default router;

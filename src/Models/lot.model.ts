@@ -262,6 +262,17 @@ const lotModel = {
       },
     });
   },
+  async isLotFavoritedByCustomer(customerId: string, lotId: string) {
+    const favorite = await db.favoriteLot.findUnique({
+      where: {
+        customer_lot_unique: {
+          customerId,
+          lotId,
+        },
+      },
+    });
+    return !!favorite; 
+  },  
 };
 
 export default lotModel;
