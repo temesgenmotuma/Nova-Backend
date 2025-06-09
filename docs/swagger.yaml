@@ -646,6 +646,54 @@ paths:
           $ref: "#/components/responses/400"
         "500":
           $ref: "#/components/responses/500"
+  /lots/search:
+    get:
+      tags:
+        - lot
+      security:
+        - BearerAuth: []
+      summary: Search for parking lots
+      description: Search for parking lots by name or address.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: query
+          name: query
+          required: true
+          schema:
+            type: string
+            example: "Downtown Parking"
+          description: The search query to find parking lots.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: The number of results to return. Defaults to 10.
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+          description: The number of results to skip. Defaults to 0.
+      responses:
+        "200":
+          description: Successfully retrieved parking lots matching the search criteria
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 2
+                  lots:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LotReturn"
+        "400":
+          $ref: "#/components/responses/400"
+        "500":
+          $ref: "#/components/responses/500"
   /lots/{lotId}/favorite:
     post:
       tags:
@@ -2497,6 +2545,43 @@ components:
         status:
           type: string
           enum: [active, completed, cancelled]
+    LotReturn:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "86b4be56-3a75-44b2-bdcb-39d360ec56c8"
+        name:
+          type: string
+          example: "ermi"
+        latitude:
+          type: number
+          format: double
+          example: 9.005401
+        longitude:
+          type: number
+          format: double
+          example: 38.763611
+        description:
+          type: string
+          nullable: true
+          example: null
+        hasValet:
+          type: boolean
+          example: false
+        images:
+          type: array
+          items:
+            type: string
+          example: []
+        rating:
+          type: number
+          format: float
+          nullable: true
+          example: null
+        address:
+          type: string
+          example: "ኦሎምፒያ"
     # VehicleResponse:
     EntryResponse:
       type: object

@@ -4,7 +4,7 @@ import alertModel from "../Models/alert.model";
 
 const updateReservationTask = cron.schedule("* * * * *", async () => {
   try {
-    console.log(`[CRON] Reservation expiry check running at: ${new Date().toISOString()}`);
+    // console.log(`[CRON] Reservation expiry check running at: ${new Date().toISOString()}`);
     await createReservationExpiryAlert();
   } catch (error) {
     console.error("[CRON] Error during reservation expiry check:", error);

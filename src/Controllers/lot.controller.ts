@@ -177,6 +177,23 @@ export const getNearbylots = async (req: Request, res: Response) => {
   }
 };
 
+export const searchLots = async (req: Request, res: Response) => {
+  const { query } = req.query;
+
+  if (!query || typeof query !== "string" || query.trim() === "") {
+    res.status(400).json({ message: "Search query must be a non-empty string." });
+    return;
+  }
+
+  try {
+    const results = await lotModel.searchLotsByName(query);
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Lot search failed:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export const getZonesByLot = async (req: Request, res: Response) => {
   const parsedLotId = uuidSchema.safeParse(req.params.lotId);
   if (!parsedLotId.success) {

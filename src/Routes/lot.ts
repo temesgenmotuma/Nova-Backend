@@ -25,6 +25,7 @@ router.get("/", protect(["provider"]), getLotsOfCurrProvider);
 router.post("/", protect(["provider"]), upload.array('images'), createLot);
 router.patch("/:lotId", protect(["provider"]), upload.array('images'), updateLot);
 router.get("/nearby", protect(["customer"]), getNearbylots)
+router.get('/search', protect(["customer"]), searchLots);
 
 router.get("/:lotId/spots", protect(["provider"]), getSpotsByLot);
 

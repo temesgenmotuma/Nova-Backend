@@ -255,6 +255,50 @@ const lotModel = {
     };
   },
 
+  async searchLotsByName(query: string) {
+    const lots:any[] = await db.$queryRaw`
+      SELECT 
+        l.id,
+        l.name, 
+        -- price, 
+        ST_X(l.location) AS longitude, 
+        ST_Y(l.location) AS latitude,
+        l.description, 
+        l."hasValet",
+        l.images, 
+        r.rating,
+        COUNT(*) AS total_count
+      FROM 
+        "Lot" l LEFT JOIN 
+        "Review" r ON l.id = r."lotId" 
+      WHERE
+        name ILIKE '%'||${query}||'%' 
+      GROUP BY
+        l.id, l.name, l.location, l.description, l."hasValet", l.images, r.rating
+      ;
+    `;
+
+    const searchedLots: any[] =[];
+    for (const lot of lots) {
+      searchedLots.push({
+        id: lot.id,
+        name: lot.name,
+        latitude: lot.latitude,
+        longitude: lot.longitude,
+        description: lot.description,
+        hasValet: lot.hasValet,
+        images: lot.images,
+        rating: lot.rating || null,
+        address: await reverseGeocode(lot.latitude, lot.longitude) || null,
+      });
+    } 
+    
+    return {
+      count: lots.length !== 0 ? Number(lots[0]?.total_count) : 0,
+      lots: searchedLots,
+    };
+  },
+
   async getLotsInBoundingBox(body: any) {
     const { sw, ne, sortBy } = body;
     let sortString : string = constructSortString(sortBy, sw.lng, sw.lat,'location');
