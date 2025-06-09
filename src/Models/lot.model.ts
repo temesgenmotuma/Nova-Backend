@@ -95,6 +95,57 @@ const lotModel = {
     });
   },
 
+  async updateLot(lotId: string, providerId: string, lot: any, images: Express.Multer.File[]) {
+    const { name, capacity, description, hasValet } = lot;
+
+    //capacity and numberOfSpots checkkk
+
+    const validLot = await db.lot.findUnique({
+      where: { 
+        id: lotId,
+       },
+      select: { 
+        providerId: true,
+       },
+    }); 
+
+    if (!validLot) {
+      throw new ModelError("Lot not found", 404);
+    }
+
+    if( validLot.providerId !== providerId) {
+      throw new ModelError("You are not authorized to update this lot", 403);
+    }
+
+    const imagePathsToStore = images
+      .filter((image) => {
+        const baseName = path.basename(image.path);
+        const extName = path.extname(image.path);
+        return !baseName.startsWith("blob") && extName !== "";
+      })
+      .map((image) => {
+        return path.basename(image.path);
+      });
+
+    const result = await db.$transaction(async (tx) => {
+      const updatedLot = await tx.$queryRaw<{ id: string }[]>`
+        UPDATE "Lot" 
+        SET 
+          name = COALESCE(${name}, "name"), 
+          capacity = COALESCE(${capacity}, "capacity"), 
+          description = COALESCE(${description || null}, "description"), 
+          "hasValet" = COALESCE(${hasValet}, "hasValet"),
+          images = ARRAY_CAT("images", ${imagePathsToStore}::text[]),
+          "updatedAt" = NOW()
+        WHERE id = ${lotId}
+        RETURNING id;
+      `;
+      return updatedLot[0];
+    });
+
+    return result;
+  },
+
   async getLotsWithinDistance(area: nearbyLotsQueryType) {
     const { longitude, latitude, radius, sortBy } = area;
     let lots:any = [];
@@ -142,7 +193,7 @@ const lotModel = {
           r.rating 
           COUNT(*) OVER()::integer AS total_count,
         FROM 
-          "Lot" l JOIN 
+          "Lot" l LEFT JOIN 
           "Review" r ON l.id = r."lotId" 
         WHERE 
           ST_DWithin(
@@ -168,7 +219,7 @@ const lotModel = {
           r.rating 
           COUNT(*) OVER()::integer AS total_count,
         FROM 
-          "Lot" l JOIN 
+          "Lot" l LEFT JOIN 
           "Review" r ON l.id = r."lotId" 
         WHERE 
           ST_DWithin(
@@ -226,15 +277,6 @@ const lotModel = {
         lotId: lotId,
         deletedAt: null,
       },
-      // include: {
-      //   spots: {
-      //     select: {
-      //       id: true,
-      //       name: true,
-      //       floor: true,
-      //     },
-      //   },
-      // },
     });
   },
 
@@ -261,22 +303,23 @@ const lotModel = {
   async getFavoriteLots(customerId: string) {
     const lots:any[] = await db.$queryRaw`
       SELECT 
-          l.name, 
-          -- price, 
-          ST_X(l.location) AS longitude, 
-          ST_Y(l.location) AS latitude,
-          l.description, 
-          l."hasValet",
-          -- address,
-          l.images, 
-          r.rating
-        FROM 
-          "FavoriteLot" fl JOIN
-          "Lot" l ON fl."lotId" = l.id LEFT JOIN
-          "Review" r ON l.id = r."lotId"
-        WHERE
-          fl."customerId" = ${customerId}
-        ;
+        l.id,
+        l.name, 
+        -- price, 
+        ST_X(l.location) AS longitude, 
+        ST_Y(l.location) AS latitude,
+        l.description, 
+        l."hasValet",
+        -- address,
+        l.images, 
+        r.rating
+      FROM 
+        "FavoriteLot" fl JOIN
+        "Lot" l ON fl."lotId" = l.id LEFT JOIN
+        "Review" r ON l.id = r."lotId"
+      WHERE
+        fl."customerId" = ${customerId}
+      ;
     `;
 
     const count = await db.favoriteLot.count({
@@ -288,6 +331,8 @@ const lotModel = {
       finalLots.push({
         id: lot.id,
         name: lot.name,
+        latitude: lot.latitude,
+        longitude: lot.longitude,
         description: lot.description,
         hasValet: lot.hasValet,
         images: lot.images || [],

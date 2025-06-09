@@ -32,6 +32,7 @@ const ROLES = {
     "update:ownLots",
     "delete:ownLots",
     "create:lot",
+    "update:lot",
   ],
   valet: ["view:comments", "create:comments"],
   attendant: [],

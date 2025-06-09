@@ -80,6 +80,8 @@ paths:
                     example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         "400":
           $ref: "#/components/responses/400"
+        "409":
+          $ref: "#/components/responses/409"
         "500":
           $ref: "#/components/responses/500"
   /customer/auth/login:
@@ -489,14 +491,14 @@ paths:
           $ref: "#/components/responses/400"
         "500":
           $ref: "#/components/responses/500"  
-  /lots/{lotId}/spots:
-    get:
+  /lots/{lotId}:
+    patch:
       tags:
         - lot
       security:
         - BearerAuth: []
-      summary: Get all spots for a parking lot
-      description: Returns all parking spots for a parking lot.
+      summary: Update a parking lot
+      description: Updates a parking lot by ID.
       parameters:
         - $ref: "#/components/parameters/XClientType"
         - in: path
@@ -505,15 +507,49 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Parking Lot 1 Updated"
+                capacity:
+                  type: integer
+                  example: 120
+                description:
+                  type: string
+                hasValet:
+                  type: boolean
+                  example: false
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                    description: The images of the lot
+            encoding:
+              images:
+                contentType: application/octet-stream
       responses:
         "200":
-          description: Successfully retrieved parking spots
+          description: Successfully updated parking lot
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Spot"
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+        "400":
+          $ref: "#/components/responses/400"
+        "403":
+          $ref: "#/components/responses/403"
         "404":
           $ref: "#/components/responses/404"
         "500":
@@ -741,7 +777,7 @@ paths:
                       example: "123 Main St, San Francisco, CA 94105"
         "500":
           $ref: "#/components/responses/500"
-
+  
 # Zone Endpoints
 # TODO: get EndPt: Yet to be implemented - High priority
   /lots/{lotId}/zones:
@@ -1015,6 +1051,35 @@ paths:
                   $ref: "#/components/schemas/Spot"
         "400":
           $ref: "#/components/responses/400"
+        "500":
+          $ref: "#/components/responses/500"
+  /lots/{lotId}/spots:
+    get:
+      tags:
+        - spot
+      security:
+        - BearerAuth: []
+      summary: Get all spots for a parking lot
+      description: Returns all parking spots for a parking lot.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: lotId
+          description: The ID of the parking lot
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successfully retrieved parking spots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Spot"
+        "404":
+          $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
 
@@ -1447,6 +1512,7 @@ paths:
       summary: Retrieve reviews for a specific lot
       description: Allows customers and providers to retrieve reviews for a specific parking lot.
       parameters:
+        - $ref: "#/components/parameters/XClientType"
         - in: query
           name: lotId
           required: true
@@ -1472,31 +1538,51 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                      example: "67890"
-                    rating:
-                      type: integer
-                      example: 4
-                    comment:
-                      type: string
-                      example: "Great parking experience!"
-                    createdAt:
-                      type: string
-                      format: date-time
-                    customer:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 2
+                  averageRating:
+                    type: integer
+                    example: 3
+                  reviews:
+                    type: array
+                    items:
                       type: object
                       properties:
-                        username:
+                        id:
                           type: string
-                          example: "user123"
-                        email:
+                          example: "913f16fc-e347-4a21-95c1-f174b42a58ba"
+                        rating:
+                          type: integer
+                          example: 4
+                        comment:
                           type: string
-                          example: "user@example.com"
+                          example: "Fuck the manager!"
+                        createdAt:
+                          type: string
+                          format: date-time
+                          example: "2025-06-09T07:37:41.804Z"
+                        updatedAt:
+                          type: string
+                          format: date-time
+                          example: "2025-06-09T07:37:41.804Z"
+                        customerId:
+                          type: string
+                          example: "e7500e15-4246-47b2-b90d-cdc4920c3c55"
+                        lotId:
+                          type: string
+                          example: "917f0c76-b727-42a8-a065-1afcd7e55e82"
+                        customer:
+                          type: object
+                          properties:
+                            username:
+                              type: string
+                              example: "user123"
+                            email:
+                              type: string
+                              example: "custone@gmail.com"
         "400":
           $ref: "#/components/responses/400"
         "500":
@@ -1506,6 +1592,8 @@ paths:
         - review
       security:
         - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
       summary: Create a new review
       description: Allows a customer to create a review for a parking lot.
       requestBody:
@@ -1969,13 +2057,6 @@ paths:
   # /analytics/getActiveReservations
   #   get:
   #     tags:
-
-
-
-
-
-
- 
 
 components:
   securitySchemes:
