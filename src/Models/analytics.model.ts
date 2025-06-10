@@ -36,7 +36,7 @@ const analyticsModel = {
   },
 
   async getCurrentlyAssignedValets(lotId: string) {
-    const result = await db.valetTicket.count({
+    const parkingValets = await db.valetTicket.count({
       where: {
         status: "IN_PROGRESS",
         issuer: {
@@ -44,7 +44,18 @@ const analyticsModel = {
         },
       },
     });
-    return result;
+    const retrievingValets = await db.valetTicket.count({
+      where: {
+        claimedBy: {
+          not: null,
+        },
+        status: "VEHICLEREQUESTED",
+        issuer: {
+          lotId,
+        },
+      }
+    });
+    return {parkingValets, retrievingValets};
   },
 };
 

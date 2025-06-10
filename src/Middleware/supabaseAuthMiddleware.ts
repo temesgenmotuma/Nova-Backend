@@ -69,6 +69,7 @@ export default function protect(validClients: string[]) {
         req.user = {
           id: user?.id,
           email: user?.email,
+          role: 'customer'
         };
       } else if (clientType === "provider") {
         user = await providerModel.getEmployeeBySupabaseId(supaId);
