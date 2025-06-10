@@ -35,7 +35,7 @@ const employeeLoginSchema = joi.object({
 
 const inviteEmployeeSchema = joi.object({
   email: joi.string().email().required(),
-  role: joi.string().valid("Admin", "Valet").required(),
+  role: joi.string().valid("Admin", "Valet", "Attendant").required(),
   lot: joi.when('role', {
     is: 'Admin',
     then: joi.optional(),
@@ -192,7 +192,6 @@ export const inviteEmployee = async (req: Request, res: Response) => {
     }
 
     //do i need to check if an unexpired inivitation already exists?
-
     const { token } = await employeeModel.createInvitation(email, role, providerId, lot);
 
   await sendEmail(

@@ -53,10 +53,7 @@ const alertModel = {
                     },
                   },
                 },
-              },
-              include: {
-                zone: true,
-              },
+              },              
             },
           },
         },
