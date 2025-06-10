@@ -28,7 +28,7 @@ model Provider {
   id       String   @id @default(uuid())
   name     String   @unique
   email    String?  @unique
-  phone    String //may not be needed.
+  phone    String // may not be needed.
   hasValet Boolean?
 
   supabaseId String @unique
@@ -95,11 +95,13 @@ model Lot {
   provider   Provider @relation(fields: [providerId], references: [id])
 
   // spots       Spot[]
-  zones       Zone[]
-  invitations Invitation[]
-  employees   Employee[]
-  review      Review[]
-  favoriteLots FavoriteLot[] // Added relation field
+  zones        Zone[]
+  invitations  Invitation[]
+  employees    Employee[]
+  review       Review[]
+  favoriteLots FavoriteLot[]
+  costs        Cost[]
+  pricing      Pricing?
 
   @@index([location], name: "location_idx", type: Gist)
 }
@@ -232,10 +234,25 @@ model ProviderSetting {
 }
 
 model Cost {
+  id     String  @id @default(uuid())
+  month  Int
+  year   Int
+  amount Decimal
+  margin Decimal
+
+  lotId String @default(uuid())
+  lot   Lot    @relation(fields: [lotId], references: [id])
+}
+
+model Pricing {
   id String @id @default(uuid())
 
-  providerId String
-  provider   Provider @relation(fields: [providerId], references: [id])
+  maxPrice   Decimal
+  minPrice   Decimal
+  valetPrice Decimal
+
+  lotId String @unique
+  lot   Lot    @relation(fields: [lotId], references: [id])
 }
 
 model ProviderDefaultSetting {
@@ -269,7 +286,7 @@ model ValetTicket {
   spot   Spot?   @relation(fields: [spotId], references: [id])
 }
 
-//cancelled not used yet
+// cancelled not used yet
 enum ValetTicketStatus {
   ISSUED
   VEHICLEREQUESTED
