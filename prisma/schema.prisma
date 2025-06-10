@@ -42,6 +42,7 @@ model Provider {
 enum Role {
   Valet
   Admin
+  Attendant
 }
 
 model Employee {
@@ -178,7 +179,7 @@ model Reservation {
   updatedAt      DateTime          @updatedAt
   cancelledAt    DateTime?
   licensePlate   String
-  requestedValet Boolean?
+  requestedValet Boolean? //make this required later
 
   spotId String
   spot   Spot   @relation(fields: [spotId], references: [id])

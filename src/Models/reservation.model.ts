@@ -9,8 +9,39 @@ const reservationModel = {
     lotId: string,
     zoneId: string,
     fromTime: Date,
-    toTime: Date
+    toTime: Date,
+    vehicleId: string
   ) {
+    const zone = await db.zone.findUnique({
+      where: {
+        id: zoneId,
+        lotId: lotId,
+      },
+    });
+    if (!zone) {
+      throw new ModelError("Zone not found", 404);
+    }
+
+    const res = await db.reservation.findFirst({
+      where:{
+        vehicleId: vehicleId,
+        status: "ACTIVE",
+        spot: {
+          zoneId: zoneId,
+          zone: {
+            lotId: lotId,
+          },
+        },
+      }
+    });
+
+    if (res) {
+      throw new ModelError(
+        "Vehicle already has an active reservation in this zone and lot",
+        409
+      );
+    }
+
     const freeSpot = await db.spot.findFirst({
       where: {
         zoneId,
@@ -70,6 +101,7 @@ const reservationModel = {
           return null;
         } */
   },
+
   async reserve(spotId: string, reservation: ReserveQueryType, lotId: string) {
     const lot = await db.lot.findFirst({
       where:{
@@ -262,11 +294,11 @@ const reservationModel = {
     });
   },
 
-  async getReservationsByVehicle(id: string, customerId: string) {
+  async getReservationsByVehicle(vehicleId: string, customerId: string) {
     return await db.reservation.findMany({
       where: {
         vehicle: {
-          id,
+          id: vehicleId,
           customer: {
             id: customerId,
           },

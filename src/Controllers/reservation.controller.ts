@@ -67,8 +67,8 @@ export const reserve = async (req: Request, res: Response) => {
   
       //check spot availability during the time the customer wants to reserve
       //If a spot is available somehow choose a parking spot
-      const {lotId, zoneId, startTime, endTime} = result.data;
-      const freeSpot = await reservationModel.checkAvailability(lotId, zoneId, startTime, endTime);
+      const {lotId, zoneId, startTime, endTime, vehicleId} = result.data;
+      const freeSpot = await reservationModel.checkAvailability(lotId, zoneId, startTime, endTime, vehicleId);
       if(!freeSpot){
         res.status(404).json({message: "Sorry. This lot is fully booked for the requested time."});
         return;
@@ -81,7 +81,7 @@ export const reserve = async (req: Request, res: Response) => {
       
     } catch (error) {
       if(error instanceof ModelError){
-        res.status(400).json({message: error.message});
+        res.status(error.statusCode).json({message: error.message});
         return;
       }
       console.error(error);
@@ -147,13 +147,13 @@ export const reserve = async (req: Request, res: Response) => {
 
   export const getReservationsByVehicle = async (req: Request, res: Response) => {
     const customerId = req?.user?.id as string;
-    const {id} = req.params;
-    if(!id){
+    const vehicleId = req.params.vehicleId!;
+    if(!vehicleId){
       res.status(400).json({message: "Invalid request."});
       return;
     }
     try {
-      const reservations = await reservationModel.getReservationsByVehicle(id, customerId);
+      const reservations = await reservationModel.getReservationsByVehicle(vehicleId, customerId);
       res.json(reservations);
     } catch (error) {
       console.error(error);

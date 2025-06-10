@@ -11,8 +11,8 @@ const reviewSchema = z.object({
 
 const reviewQuerySchema = z.object({
   lotId: z.string().uuid(),
-  limit: z.number().int().positive().optional().default(10),
-  offset: z.number().int().nonnegative().optional().default(0),
+  limit: z.coerce.number().positive().optional().default(10),
+  offset: z.coerce.number().optional().default(0),
 });
 
 export const createReview = async (req: Request, res: Response): Promise<void> => {
@@ -37,7 +37,7 @@ export const createReview = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-export const getReviews = async (req: Request, res: Response): Promise<void> => {
+export const getReviews = async (req: Request, res: Response) => {
   const parseResult = reviewQuerySchema.safeParse(req.query);
   if (!parseResult.success) {
     res.status(400).json({ error: parseResult.error.errors });
