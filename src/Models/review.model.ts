@@ -1,7 +1,7 @@
 import db from "../Db/db";
 
 const reviewModel = {
-  async createReview(customerId: string, lotId: string, rating: number, comment?: string) {
+  async createReview(customerId: string, lotId: string, rating: any, comment?: string) {
     return await db.review.create({
       data: {
         customerId,
@@ -13,7 +13,7 @@ const reviewModel = {
   },
 
   async getReviews(lotId: string, limit: number = 10, offset: number = 0) {
-    return await db.review.findMany({
+    const reviews = await db.review.findMany({
       where: { lotId },
       take: limit,
       skip: offset,
@@ -23,6 +23,18 @@ const reviewModel = {
         },
       },
     });
+    const count = await db.review.count({
+      where: { lotId },
+    });
+    const average = await db.review.aggregate({
+      _avg: { rating: true },
+      where: { lotId },
+    });
+    return {
+      count,
+      averageRating: average._avg.rating || 0,
+      reviews,
+    };
   },
 };
 

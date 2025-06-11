@@ -1,36 +1,61 @@
-import joi from "joi";
 import {z} from "zod";
 import { Request, Response } from "express";
+
 import lotModel from "../Models/lot.model";
-import { hasPermission } from "../utils/permission";
 import ModelError from "../Models/ModelError";
+import { reverseGeocode } from "../utils/reverseGeocode";
+import { hasPermission } from "../utils/permission";
 
-const spotSchema = joi.object({
-  numberOfSpots: joi.number().integer().empty("").default(0),
-  startingNumber: joi.number().integer().default(1).empty(""),
-  name: joi.string().default("P").empty(""),
-  floor: joi.number().integer().empty("").optional(),
-});
-
-//TODO: numberOfSpots < capacity
-export const createLotSchema = z.object({
-  name: z.string(),
+const createLotSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(10, "Lot name is required")
+    .max(100, "Lot name must be less than 100 characters"),
   capacity: z.coerce.number(),
-  location: z.preprocess((val) => {
-    if (typeof val === 'string') {
-      try {
-        return JSON.parse(val);
-      } catch (e) {
-        return val; 
+  location: z.preprocess(
+    (val) => {
+      if (typeof val === "string") {
+        try {
+          return JSON.parse(val);
+        } catch (e) {
+          return val;
+        }
       }
-    }
-    return val; 
-  }, z.object({
-    latitude: z.coerce.number(),
-    longitude: z.coerce.number(),
-  })),
+      return val;
+    },
+    z.object({
+      latitude: z.coerce.number(),
+      longitude: z.coerce.number(),
+    })
+  ),
   description: z.string().optional().nullable().default(""),
   hasValet: z.coerce.boolean().optional().default(false),
+});
+
+const updateLotSchema = z.object({
+  name: z.string().optional(),
+  capacity: z.preprocess((val) => {
+    if (val === "" || val === null || val === undefined) {
+      return undefined;
+    }
+    const num = Number(val);
+    if (isNaN(num)) {
+      return undefined;
+    }
+    return num;
+  }, z.number().optional().nullable().default(null)),
+  description: z.string().optional().nullable(),
+  hasValet: z.preprocess((val) => {
+    const sVal = String(val).toLowerCase().trim();
+    if (sVal === "true" || sVal === "1") {
+      return true;
+    }
+    if (sVal === "false" || sVal === "0" || sVal === "") {
+      return false;
+    }
+    return undefined;
+  }, z.boolean().optional()),
 });
 
 const nearbyLotsQuerySchema = z.object({
@@ -62,15 +87,25 @@ export const getLotsOfCurrProvider = async (req: Request, res: Response) => {
 };
 
 export const createLot = async (req: Request, res: Response) => {
+  const role = req.user?.role;
+  if (!hasPermission(req.user!, "create:lot")) {
+    res.status(403).json({ message: `${role} is not authorized to access this.` });
+    return;
+  }
+  
   const providerId = req.user?.providerId!;
   const value = createLotSchema.safeParse(req.body);
   if (!value.success) {
     res.status(400).json({ error: value.error.errors });
     return;
   }
+
   try {
+    const address = await reverseGeocode(value.data.location.latitude, value.data.location.longitude);
+    
     const files = Array.isArray(req.files) ? req.files : [];
-    const lot = await lotModel.createLot(value.data, providerId, files);
+    const lot = await lotModel.createLot(value.data, providerId, address, files);
+    
     res.status(201).json(lot);
   } catch (error) {
     console.error(error);
@@ -79,7 +114,7 @@ export const createLot = async (req: Request, res: Response) => {
 };
 
 export const getSpotsByLot = async (req: Request, res: Response) => {
-  const provId = req.user?.providerId as string;
+  const provId = req.user?.providerId!;
   const lotId = req.params.lotId as string;
   if (!lotId) {
     res.status(400).json({ message: "lotId is required" });
@@ -93,6 +128,79 @@ export const getSpotsByLot = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Error fetching spots" });
   }
 };
+
+export const getLotById = async ( req: Request, res: Response) => {
+  const lotIdData = uuidSchema.safeParse(req.params.lotId!);
+  if (!lotIdData.success) {
+    res.status(400).json({ message: "lotId is required" });
+    return;
+  }
+  const lotId = lotIdData.data;
+
+  const role = req.user?.role;
+  const providerId = req.user?.providerId!;
+  if (!hasPermission(req.user!, "view:lots")) {
+    res.status(403).json({ message: `${role} is not authorized to access this.` });
+    return;
+  }
+  
+  try {
+    const lot = await lotModel.getLotById(lotId);
+    if (!lot || lot.length === 0) {
+      res.status(404).json({ message: "Lot not found" });
+      return;
+    }
+
+    if(role === "admin" && providerId !== lot?.[0].providerId) {
+      res.status(403).json({ message: "Admin is not authorized to view this lot." });
+      return;
+    }
+
+    res.status(200).json(lot);
+  } catch (error) {
+    console.error(error);
+    if (error instanceof ModelError) {
+      res.status(error.statusCode).json({ message: error.message });
+      return;
+    }
+    res.status(500).json({ error: "Error fetching lot." });
+  }
+}
+
+export const updateLot = async (req: Request, res: Response) => {
+  const role = req.user?.role;
+  const providerId = req.user?.providerId!;
+  if (!hasPermission(req.user!, "update:lot")) {
+    res.status(403).json({ message: `${role} is not authorized to access this.` });
+    return;
+  }
+  
+  const lotIdData = uuidSchema.safeParse(req.params.lotId!);
+  if (!lotIdData.success) {
+    res.status(400).json({ message: "lotId is required" });
+    return;
+  }
+  const lotId = lotIdData.data;
+
+  const value = updateLotSchema.safeParse(req.body);
+  if (!value.success) {
+    res.status(400).json({ error: value.error.errors });
+    return;
+  }
+
+  try {
+    const files = Array.isArray(req.files) ? req.files : [];
+    const updatedLot = await lotModel.updateLot(lotId, providerId,value.data, files);
+    res.status(200).json(updatedLot);
+  } catch (error) {
+    console.error(error);
+    if (error instanceof ModelError) {
+      res.status(error.statusCode).json({ message: error.message });
+      return;
+    }
+    res.status(500).json({ error: "Error updating lot." });
+  }
+}
 
 export const getNearbylots = async (req: Request, res: Response) => {
   const value = nearbyLotsQuerySchema.safeParse(req.query);
@@ -110,6 +218,23 @@ export const getNearbylots = async (req: Request, res: Response) => {
       return;
     }
     res.status(500).json({message: "Error fetching nearby parking lots.", error: (error as Error).message});
+  }
+};
+
+export const searchLots = async (req: Request, res: Response) => {
+  const { query } = req.query;
+
+  if (!query || typeof query !== "string" || query.trim() === "") {
+    res.status(400).json({ message: "Search query must be a non-empty string." });
+    return;
+  }
+
+  try {
+    const results = await lotModel.searchLotsByName(query);
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Lot search failed:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 

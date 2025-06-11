@@ -1,10 +1,9 @@
 import express from "express";
-import multer from "multer";
-import path from "node:path";
-import fs from "node:fs";
+import upload from "../Middleware/upload";
 
 import {
   createLot,
+  getLotById,
   getNearbylots,
   getSpotsByLot,
   getLotsOfCurrProvider,
@@ -13,38 +12,21 @@ import {
   getFavoriteLots,
   unfavoriteLot,
   isLotFavorited,
-  // uploadLotImage
+  updateLot,
+  searchLots
 } from "../Controllers/lot.controller";
 import { createZone } from "../Controllers/zone.controller";
 import protect from "../Middleware/supabaseAuthMiddleware";
 
-const uploadDir = path.join(__dirname, '../..', 'uploads', 'lots');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir); 
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now();
-    cb(null, `${file.originalname}-${uniqueSuffix}` + path.extname(file.originalname)); 
-  }
-});
-
-const upload = multer({
-  limits: { fileSize: 10 * 1024 * 1024 }, 
-  storage: storage,
-});
 
 const router = express.Router();
 
-// router.post("/:lotId/images", protect(["provider"]), upload.single("image"), uploadLotImage);
 
 router.get("/", protect(["provider"]), getLotsOfCurrProvider);
 router.post("/", protect(["provider"]), upload.array('images'), createLot);
+
 router.get("/nearby", protect(["customer"]), getNearbylots)
+router.get('/search', protect(["customer"]), searchLots);
 
 router.get("/:lotId/spots", protect(["provider"]), getSpotsByLot);
 
@@ -55,5 +37,8 @@ router.post("/:lotId/favorite", protect(["customer"]), favoriteLot);
 router.delete("/:lotId/favorite", protect(["customer"]), unfavoriteLot);
 router.get("/favorites", protect(["customer"]), getFavoriteLots);
 router.get("/:lotId/favorite", protect(["customer"]), isLotFavorited);
+
+router.get("/:lotId", protect(["provider", "customer"]), getLotById)
+router.patch("/:lotId", protect(["provider"]), upload.array('images'), updateLot);
 
 export default router;

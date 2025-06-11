@@ -39,7 +39,11 @@ export const getTotalActiveReservations = async (req: Request, res: Response) =>
 };
 
 export const getCurrentlyAssignedValets = async (req: Request, res: Response) => {
-  const { lotId } = req.params;
+  const lotId = req.query.lotId as string;
+  if (!lotId) {
+    res.status(400).json({ message: "Lot ID is required." });
+    return;
+  }
 
   try {
     const currentlyAssignedValets = await analyticsModel.getCurrentlyAssignedValets(lotId);
