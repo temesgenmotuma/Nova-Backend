@@ -50,6 +50,14 @@ const pricingModel = {
         }
     },
 
+    async lotProvidesValet(lotId: string) {
+        const lot = await db.lot.findUnique({
+            where: { id: lotId },
+            select: { hasValet: true },
+        });
+        return lot && lot.hasValet;
+    },
+
     /**
      * Retrieves the current pricing configuration for a specific lot.
      * Returns a default object if no pricing configuration exists for the lot.

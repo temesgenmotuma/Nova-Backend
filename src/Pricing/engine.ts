@@ -68,7 +68,7 @@ export interface ParameterConfig {
     weight: number;
 }
 
-class ConstParameterConfig implements ParameterConfig {
+export class ConstParameterConfig implements ParameterConfig {
     readonly occupancyClampMin: number = 0.5;
     readonly occupancyClampMax: number = 1.5;
     readonly alpha: number = 0.2;
@@ -321,11 +321,10 @@ export class DynamicPricingEngine {
      *
      * @throws Error if indices are invalid or endHour ≤ startHour.
      */
-    public async computeTotalPrice(
+    public async computeParkingAndValetPrices(
         startHour: number,
         endHour: number,
-        valetRequested: boolean
-    ): Promise<number> {
+    ){
         if (
             startHour < 0 ||
             endHour > DynamicPricingEngine.HOURS_IN_DAY ||
@@ -335,18 +334,18 @@ export class DynamicPricingEngine {
         }
 
         const hourlyPrices = await this.computeHourlyPrices();
-        let total = 0;
+        let subtotal = 0;
         // Sum prices for hours h ∈ {startHour, startHour+1, …, endHour - 1}
         for (let h = startHour; h < endHour; h++) {
-            total += hourlyPrices[h];
+            subtotal += hourlyPrices[h];
         }
 
-        // Add valet fee if requested
-        if (valetRequested) {
-            total += this.costConfig.valetPrice;
-        }
+        const fixedValetPrice = this.costConfig.valetPrice;
 
-        return total;
+        return {
+            subtotalParkingPrice: subtotal,
+            fixedValetPrice: fixedValetPrice
+        };
     }
 }
 
