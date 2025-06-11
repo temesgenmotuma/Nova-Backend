@@ -1,9 +1,34 @@
 import db from "../Db/db";
-import { nonResEntryType } from "../Controllers/entryExit.controller";
+import {
+  nonResEntryType,
+  nonResExitType,
+  resEntryType,
+  resExitType,
+} from "../Controllers/entryExit.controller";
 import ModelError from "./ModelError";
 
 const entryExitModel = {
-  async findNonReservationSpot(lotId: string | undefined, zoneId: string) {
+  async findNonReservationSpot(lotId: string | undefined, reqObj: nonResEntryType, zoneId: string) {
+    const { licensePlate } = reqObj;
+
+    //TODO:There should be some check on the time that has passed since the reservation start time.
+    //TODO:Should license plate filter be here??
+    const activeTicket = await db.entryTicket.findFirst({
+      where: {
+        // phoneNumber,
+        status: "ACTIVE",
+        licensePlate,
+      },
+    });
+
+    //TODO: Test this case
+    if (activeTicket) {
+      throw new ModelError(
+        "There is an existing active ticket with this phone number",
+        409
+      );
+    }
+
     //TODO: test the first path
     //TODO: What should the value of the status below be??????
     //add status: not occupied
@@ -11,9 +36,9 @@ const entryExitModel = {
       where: {
         // status: "Reserved",
         zoneId,
-        // zone: {
-        //   lotId,
-        // },
+        zone: {
+          lotId,
+        },
         OR: [
           {
             reservations: {
@@ -95,14 +120,19 @@ const entryExitModel = {
     return furthestReservationSpot[0];
   },
 
-  async nonReservationEntry( spotId: string, lotId: string | undefined, reqObj: nonResEntryType) {
-    const { licensePlate, phoneNumber, vehicle } = reqObj;
+  async nonReservationEntry(
+    spotId: string,
+    lotId: string | undefined,
+    reqObj: nonResEntryType
+  ) {
+    const { licensePlate, /* phoneNumber, */ vehicle } = reqObj;
+
     //TODO:There should be some check on the time that has passed since the reservation start time.
     //TODO:Should license plate filter be here??
     const activeTicket = await db.entryTicket.findFirst({
       where: {
-        phoneNumber,
-        status:"ACTIVE",
+        // phoneNumber,
+        status: "ACTIVE",
         licensePlate,
       },
     });
@@ -131,13 +161,13 @@ const entryExitModel = {
           spotId,
           entryTime: new Date(),
           licensePlate: licensePlate,
-          phoneNumber,
+          // phoneNumber,
           vehicleId: newVehicle.id,
         },
-        omit:{
+        omit: {
           createdAt: true,
           updatedAt: true,
-        }
+        },
       });
 
       await tx.spot.update({
@@ -150,29 +180,31 @@ const entryExitModel = {
         },
       });
       return newTicket;
-    
     });
     return ticket;
   },
 
-  async nonReservationExit( lotId: string, phone: string){
+  async nonReservationExit(lotId: string, data: nonResExitType) {
+    const { /* phone, */ licensePlate } = data;
+
     //check if an active ticket exists
     const ticket = await db.entryTicket.findFirst({
       where: {
-        phoneNumber: phone,
+        // phoneNumber: phone,
+        licensePlate,
         status: "ACTIVE",
-        spot:{
-          zone:{
-            lot:{
+        spot: {
+          zone: {
+            lot: {
               id: lotId,
             },
           },
-        }
+        },
       },
     });
-    if(!ticket) throw new ModelError("No active ticket found", 404);
+    if (!ticket) throw new ModelError("No active ticket found", 404);
     // if(!ticket.isPaid) throw new ModelError("Payment not done", 403);
-    
+
     //update spot status
     //update ticket status
     return await db.$transaction([
@@ -195,14 +227,16 @@ const entryExitModel = {
         },
       }),
       //calculate the price
-      //make sure payment is done 
+      //make sure payment is done
     ]);
   },
 
-  async reservationEntry(licensePlate: string, phone:string, lotId: string) {
+  async reservationEntry(lotId: string, data: resEntryType) {
+    const { licensePlate /* , phone */ } = data;
+
     const existingTicket = await db.entryTicket.findFirst({
       where: {
-        phoneNumber: phone,
+        // phoneNumber: phone,
         status: "ACTIVE",
         licensePlate: licensePlate,
       },
@@ -210,11 +244,11 @@ const entryExitModel = {
 
     if (existingTicket) {
       throw new ModelError(
-        "There is an existing active ticket with this phone number",
+        "There is an existing active ticket with license plate",
         409
       );
     }
-    
+
     const reservation = await db.reservation.findFirst({
       where: {
         licensePlate,
@@ -244,16 +278,15 @@ const entryExitModel = {
       },
     });
 
-    //TODO: Check if there is an existing active ticket for this phone number
-    //TODO: Store the reservation id in the ticket
+    if (!reservation) throw new ModelError("Reservation not found", 404);
 
-    if(!reservation) throw new ModelError("Reservation not found", 404);
+    //TODO: Store the reservation id in the ticket
     const ticket = await db.entryTicket.create({
       data: {
         spotId: reservation.spotId,
         entryTime: new Date(),
         licensePlate: reservation.licensePlate,
-        phoneNumber: phone,
+        // phoneNumber: phone,
         vehicleId: reservation.vehicle.id,
       },
     });
@@ -268,14 +301,17 @@ const entryExitModel = {
       },
     });
 
-    return ticket
+    return ticket;
   },
 
-  async reservationExit(lotId: string, phone: string) {
+  async reservationExit(lotId: string, data: resExitType) {
+    const { /* phone, */ licensePlate } = data;
+
     //make sure we are not past the reservation end time(some grace time)
     const ticket = await db.entryTicket.findMany({
       where: {
-        phoneNumber: phone,
+        // phoneNumber: phone,
+        licensePlate: licensePlate,
         status: "ACTIVE",
         spot: {
           zone: {
@@ -327,7 +363,8 @@ const entryExitModel = {
     await db.$transaction([
       db.entryTicket.updateMany({
         where: {
-          phoneNumber: phone,
+          // phoneNumber: phone,
+          licensePlate: licensePlate,
           status: "ACTIVE",
         },
         data: {
@@ -341,15 +378,32 @@ const entryExitModel = {
         },
         data: {
           status: "COMPLETE",
-          spot:{
-            update:{
+          spot: {
+            update: {
               status: "Available",
               occupationType: null,
-            }
-          }
+            },
+          },
         },
       }),
     ]);
+  },
+
+  async isValidLot( lotId: string | undefined, providerId: string, zoneId?: string) {
+    const lot = await db.lot.findUnique({
+      where: {
+        id: lotId,
+        ...(zoneId && {
+          zones: {
+            some: {
+              id: zoneId,
+            },
+          },
+        }),
+        providerId: providerId,
+      },
+    });
+    return lot;
   },
 };
 

@@ -1573,9 +1573,9 @@ paths:
                 lotId: 
                   type: string
                   format: uuid
-                phoneNumber:
-                  type: string
-                  example: 0912131415
+                # phoneNumber:
+                #   type: string
+                #   example: 0912131415
                 licensePlate:
                   type: string
                   example: 1AAB45323
@@ -1590,7 +1590,7 @@ paths:
                       type: string
               required:
                 - licensePlate
-                - phoneNumber
+                - zoneId
       responses:
         "200":
           description: Successfully recorded vehicle entry
@@ -1623,9 +1623,9 @@ paths:
             schema:
               type: object
               properties:
-                phone:
-                  type: string
-                  example: 0912131415
+                # phone:
+                #   type: string
+                #   example: 0912131415
                 licensePlate:
                   type: string
                   example: 1AAB45323
@@ -1634,7 +1634,7 @@ paths:
                   format: uuid
               required:
                 - licensePlate
-                - phoneNumber
+                # - phoneNumber
       responses:
         "201":
           description: Successfully recorded vehicle entry
@@ -1667,14 +1667,17 @@ paths:
             schema:
               type: object
               properties:
-                phoneNumber:
+                # phoneNumber:
+                #   type: string
+                #   example: 0912131415
+                licensePlate:
                   type: string
-                  example: 0912131415
+                  example: 1AAB45323  
                 lotId:
                   type: string
                   format: uuid
               required:
-                - phoneNumber
+                - licensePlate
       responses:
         "204":
           $ref: "#/components/responses/204"
@@ -1703,9 +1706,17 @@ paths:
             schema:
               type: object
               properties:
-                phoneNumber:
+                # phoneNumber:
+                #   type: string
+                #   example: 0912131415
+                licensePlate:
                   type: string
-                  example: 0912131415
+                  example: 1AAB45323
+                lotId:
+                  type: string
+                  format: uuid
+              required:
+                - licensePlate
       responses:
         "204":
           $ref: "#/components/responses/204"
@@ -1961,13 +1972,6 @@ paths:
   # /analytics/getActiveReservations
   #   get:
   #     tags:
-
-
-
-
-
-
- 
 
 components:
   securitySchemes:
