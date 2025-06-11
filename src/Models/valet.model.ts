@@ -90,7 +90,7 @@ const valetModel = {
       spot = reservationCust.spot;
       occupationType = "RESERVATION";
     } else {
-      spot = await entryExitModel.findNonReservationSpot(lotId, zoneId);
+      spot = await entryExitModel.findNonReservationSpot(lotId, vehicle.licensePlate, zoneId);
       occupationType = "NONRESERVATION";
     }
 

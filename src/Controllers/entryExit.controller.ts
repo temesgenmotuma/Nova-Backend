@@ -88,8 +88,9 @@ export const nonReservationEntry = async (req: Request, res: Response) => {
       res.status(404).json({message: "Non existant parking lot and/or zone."});
       return;
     }
-
-    const spot = await ticketModel.findNonReservationSpot(lotId, result.data, result.data.zoneId);
+    
+    const {licensePlate} = result.data;
+    const spot = await ticketModel.findNonReservationSpot(lotId, licensePlate, result.data.zoneId);
     if(!spot){
       res.status(404).json({message: "No free spot found in this parking lot."});
       return;

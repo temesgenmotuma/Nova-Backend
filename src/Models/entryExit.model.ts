@@ -8,8 +8,7 @@ import {
 import ModelError from "./ModelError";
 
 const entryExitModel = {
-  async findNonReservationSpot(lotId: string | undefined, reqObj: nonResEntryType, zoneId: string) {
-    const { licensePlate } = reqObj;
+  async findNonReservationSpot(lotId: string | undefined, licensePlate: string, zoneId: string) {
 
     //TODO:There should be some check on the time that has passed since the reservation start time.
     //TODO:Should license plate filter be here??
