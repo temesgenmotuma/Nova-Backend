@@ -15,7 +15,8 @@ async function reverseGeocode(
         },
       }
     );
-    return `${response.data.address.road} ${response.data.address.suburb}` || null;
+    const short = `${response.data.address.road} ${response.data.address.suburb}`; 
+    return response.data.display_name || null;
   } catch (error) {
     console.error("Error during reverse geocoding:", error);
     return null;

@@ -1,3 +1,5 @@
+import { custom } from "joi";
+
 export type User = {
   roles: Role[];
   id: string;
@@ -22,7 +24,7 @@ export type genericUser =
       email?: string;
     };
 
-type Role = keyof typeof ROLES
+export type Role = keyof typeof ROLES
 type Permission = (typeof ROLES)[Role][number]
 
 const ROLES = {
@@ -33,9 +35,15 @@ const ROLES = {
     "delete:ownLots",
     "create:lot",
     "update:lot",
+    "view:lots",
   ],
   valet: ["view:comments", "create:comments"],
   attendant: [],
+  customer : [
+    "view:lots",
+    "view:comments",
+    "create:comments",
+  ]
 } as const
 
 export function hasPermission(user: genericUser, permission: Permission) {

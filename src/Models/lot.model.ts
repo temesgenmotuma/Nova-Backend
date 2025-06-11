@@ -39,7 +39,7 @@ const lotModel = {
     `;
   },
 
-  async createLot(lot: createLotType, providerId: string/* , address: string|null */, images: Express.Multer.File[] ) {
+  async createLot(lot: createLotType, providerId: string, address: string|null, images: Express.Multer.File[] ) {
     const {
       name: lotName,
       capacity,
@@ -57,10 +57,9 @@ const lotModel = {
       .map((image) => {
         return path.basename(image.path);
       });
-      const tmp = path.extname(images[0].path);
 
     const result = await db.$transaction(async (tx) => {
-      const lot = await tx.$queryRaw<{ id: string }[]>`
+      const lot = await tx.$queryRaw<{ id: string, address:string }[]>`
         INSERT INTO "Lot" (id, name, "providerId", location, capacity, "updatedAt", description, "hasValet", address, images) 
         VALUES (
           gen_random_uuid(), 
@@ -71,14 +70,47 @@ const lotModel = {
           NOW(),
           ${description || null},
           ${hasValet || false},
+          ${address},
           ${imagePathsToStore}::text[]
         ) 
-        RETURNING id;
+        RETURNING id, address::text;
       `;
       return lot[0];
     });
 
     return result;
+  },
+
+  async getLotById(lotId: string) {
+
+    const lot = await db.$queryRaw<{
+      id: string;
+      name: string;
+      capacity: number;
+      longitude: number;
+      latitude: number;
+      description: string | null;
+      hasValet: boolean;
+      address: string | null;
+      images: string[] | null;
+      providerId: string;
+      }[]>`
+      SELECT 
+        id, 
+        name, 
+        capacity, 
+        ST_X(location) AS longitude, 
+        ST_Y(location) AS latitude, 
+        description, 
+        "hasValet", 
+        address,
+        images,
+        "providerId" 
+      FROM "Lot" 
+      WHERE id = ${lotId};
+    `;
+
+    return lot;
   },
 
   async getSpotsByLot(provId: string, lotId: string) {
@@ -160,10 +192,10 @@ const lotModel = {
           ST_Distance(l.location, ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326)::geography) as distance,
           l.description, 
           l."hasValet",
-          -- l.address,
+          l.address,
           l.images, 
-          r.rating,
-          COUNT(*) OVER()::integer AS total_count
+          COUNT(*) OVER()::integer AS total_count,
+          AVG(r.rating) AS average_rating
         FROM 
           "Lot" l LEFT JOIN 
           "Review" r ON l.id = r."lotId" 
@@ -172,13 +204,14 @@ const lotModel = {
             l.location,
             ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326)::geography,
             ${radius}
-          ) 
+          )
+        GROUP BY
+          l.id, l.name, l.location, l.description, l."hasValet", l.images
         ORDER BY 
           ST_Distance(l.location, ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326)::geography)
         ;
       `;
     }
-    
     else if(sortBy === 'price') {
       lots = await db.$queryRaw`
         SELECT 
@@ -190,8 +223,9 @@ const lotModel = {
           l.description, 
           l."hasValet", 
           l.images,
-          r.rating 
+          l.address,
           COUNT(*) OVER()::integer AS total_count,
+          AVG(r.rating) AS average_rating
         FROM 
           "Lot" l LEFT JOIN 
           "Review" r ON l.id = r."lotId" 
@@ -216,8 +250,9 @@ const lotModel = {
           l.description, 
           l."hasValet", 
           l.images,
-          r.rating 
+          l.address,
           COUNT(*) OVER()::integer AS total_count,
+          AVG(r.rating) AS average_rating
         FROM 
           "Lot" l LEFT JOIN 
           "Review" r ON l.id = r."lotId" 
@@ -235,17 +270,24 @@ const lotModel = {
 
     const formattedLots: any[] = [];
     for (const lot of lots) {
+      let address =
+        lot.address ||
+        (await reverseGeocode(lot.latitude, lot.longitude)) ||
+        null;
+
       formattedLots.push({
-      id: lot.id,
-      name: lot.name,
-      longitude: lot.longitude,
-      latitude: lot.latitude,
-      ...((!!lot.distance || lot.distance === 0) && { distance: lot.distance }),
-      description: lot.description,
-      hasValet: lot.hasValet,
-      images: lot.images || [],
-      rating: lot.rating || null,
-      address: await reverseGeocode(lot.latitude, lot.longitude) || null,
+        id: lot.id,
+        name: lot.name,
+        longitude: lot.longitude,
+        latitude: lot.latitude,
+        ...((!!lot.distance || lot.distance === 0) && {
+          distance: lot.distance,
+        }),
+        description: lot.description,
+        hasValet: lot.hasValet,
+        images: lot.images || [],
+        rating: lot.average_rating ? Number(lot.average_rating) : null,
+        address,
       });
     }
 
@@ -255,31 +297,43 @@ const lotModel = {
     };
   },
 
-  async searchLotsByName(query: string) {
+  async searchLotsByName(query: string, limit: number = 10, offset: number = 0) {
     const lots:any[] = await db.$queryRaw`
-      SELECT 
-        l.id,
-        l.name, 
-        -- price, 
-        ST_X(l.location) AS longitude, 
-        ST_Y(l.location) AS latitude,
-        l.description, 
-        l."hasValet",
-        l.images, 
-        r.rating,
-        COUNT(*) AS total_count
-      FROM 
-        "Lot" l LEFT JOIN 
-        "Review" r ON l.id = r."lotId" 
-      WHERE
-        name ILIKE '%'||${query}||'%' 
-      GROUP BY
-        l.id, l.name, l.location, l.description, l."hasValet", l.images, r.rating
-      ;
+        SELECT 
+          l.id,
+          l.name, 
+          -- price, 
+          ST_X(l.location) AS longitude, 
+          ST_Y(l.location) AS latitude,
+          l.description, 
+          l."hasValet",
+          l.images,
+          l.address, 
+          AVG(r.rating) AS average_rating
+        FROM 
+          "Lot" l LEFT JOIN 
+          "Review" r ON l.id = r."lotId" 
+        WHERE
+          name ILIKE '%'||${query}||'%' 
+        GROUP BY
+          l.id, l.name, l.location, l.description, l."hasValet", l.images, l.address
+        limit ${limit} 
+        OFFSET ${offset}
+    `;
+
+    const totalCountResult: any[] = await db.$queryRaw`
+      SELECT COUNT(id)::integer AS total_lots_found
+      FROM "Lot"
+      WHERE name ILIKE '%'||${query}||'%';
     `;
 
     const searchedLots: any[] =[];
     for (const lot of lots) {
+      let address = 
+        lot.address ||
+        (await reverseGeocode(lot.latitude, lot.longitude)) ||
+        null;
+
       searchedLots.push({
         id: lot.id,
         name: lot.name,
@@ -288,13 +342,13 @@ const lotModel = {
         description: lot.description,
         hasValet: lot.hasValet,
         images: lot.images,
-        rating: lot.rating || null,
-        address: await reverseGeocode(lot.latitude, lot.longitude) || null,
+        rating: lot.average_rating || null,
+        address,
       });
     } 
     
     return {
-      count: lots.length !== 0 ? Number(lots[0]?.total_count) : 0,
+      count: totalCountResult[0]?.total_lots_found || 0,
       lots: searchedLots,
     };
   },
@@ -354,15 +408,17 @@ const lotModel = {
         ST_Y(l.location) AS latitude,
         l.description, 
         l."hasValet",
-        -- address,
-        l.images, 
-        r.rating
+        l.address,
+        l.images,
+        AVG(r.rating) AS rating 
       FROM 
         "FavoriteLot" fl JOIN
         "Lot" l ON fl."lotId" = l.id LEFT JOIN
         "Review" r ON l.id = r."lotId"
       WHERE
         fl."customerId" = ${customerId}
+      GROUP BY
+        l.id, l.name, l.location, l.description, l."hasValet", l.images, l.address
       ;
     `;
 
@@ -372,6 +428,11 @@ const lotModel = {
 
     const finalLots: any[] =[];
     for (const lot of lots) {
+      let address =
+        lot.address || 
+        (await reverseGeocode(lot.latitude, lot.longitude)) ||
+        null;
+
       finalLots.push({
         id: lot.id,
         name: lot.name,
@@ -381,7 +442,7 @@ const lotModel = {
         hasValet: lot.hasValet,
         images: lot.images || [],
         rating: lot.rating || null,
-        address: await reverseGeocode(lot.latitude, lot.longitude) || null,
+        address,
       });
     } 
     
@@ -405,35 +466,3 @@ const lotModel = {
 };
 
 export default lotModel;
-
-/*const id = lot[0]?.id;
-
-      let spots;
-      if (numberOfSpots > 0) {
-        const spotsArray = Array.from({ length: numberOfSpots }).map(
-          (_, i) => ({
-            name: `${spotName}${startingNumber + i}`,
-            floor: floor,
-            status: SpotStatus.Available,
-            zoneId: id,
-          })
-        );
-        spots = await tx.spot.createManyAndReturn({
-          data: spotsArray,
-        });
-      }
-      return spots; 
-      */
-
-       // lots: lots.map(async (lot: any) => ({
-      //   id: lot.id,
-      //   name: lot.name,
-      //   longitude: lot.longitude,
-      //   latitude: lot.latitude,
-      //   ...((!!lot.distance || lot.distance === 0) && { distance: lot.distance }),
-      //   description: lot.description,
-      //   hasValet: lot.hasValet,
-      //   images: lot.images || [],
-      //   rating: lot.rating || null,
-      //   address: await reverseGeocode(lot.latitude, lot.longitude) || null,
-      // })),

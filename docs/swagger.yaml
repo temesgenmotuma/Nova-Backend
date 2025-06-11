@@ -492,6 +492,37 @@ paths:
         "500":
           $ref: "#/components/responses/500"  
   /lots/{lotId}:
+    get:
+      tags:
+        - lot
+      security:
+        - BearerAuth: []
+      summary: Get a parking lot by ID
+      description: Returns a parking lot by ID.
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: path
+          name: lotId
+          description: The ID of the parking lot
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Successfully retrieved parking lot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LotReturn"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
     patch:
       tags:
         - lot
@@ -523,6 +554,8 @@ paths:
                   example: 120
                 description:
                   type: string
+                  nullable: true
+                  example: null
                 hasValet:
                   type: boolean
                   example: false
@@ -644,6 +677,10 @@ paths:
                             example: "Img3423.jpg"
         "400":
           $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          $ref: "#/components/responses/404"
         "500":
           $ref: "#/components/responses/500"
   /lots/search:
@@ -661,7 +698,6 @@ paths:
           required: true
           schema:
             type: string
-            example: "Downtown Parking"
           description: The search query to find parking lots.
         - in: query
           name: limit
@@ -2043,6 +2079,78 @@ paths:
           $ref: "#/components/responses/500"
 
   #Analytics Endpoints 
+  /analytics/aggregate:
+    get:
+      tags:
+        - analytics
+      summary: Retrieve aggregated analytics data joining multiple Endpoints
+      description: Returns aggregated analytics data for parking lots. Only accessible by admins.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: query
+          name: lotId
+          description: The ID of the parking lot to filter analytics data
+          required: false
+          schema:
+            type: string
+            format: uuid
+         
+      responses:  
+        "200":
+          description: Successfully retrieved aggregated analytics data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalReservations:
+                    type: integer
+                    example: 1000
+                    description: Total number of reservations across all parking lots.
+                  totalRevenue:
+                    type: number
+                    format: float
+                    example: 50000.00
+                    description: Total revenue generated from reservations.
+                  averageDuration:
+                    type: string
+                    example: "01:30:00"
+                    description: Average duration of reservations in HH:mm:ss format.
+        "403":
+          description: Access denied. Only admins can access this resource.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Access denied. Only admins can access this resource."
+        "401":
+          description: Unauthorized access due to missing or invalid authentication.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unauthorized: No authorization header provided."
+        "500":
+          description: Internal server error while retrieving aggregated analytics data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Error retrieving aggregated analytics data."
+                  error:
+                    type: string
+                    example: "Database connection failed."
   /analytics/peak-hours:
     get:
       tags:
@@ -2102,9 +2210,81 @@ paths:
                   error:
                     type: string
                     example: "Database connection failed."
-  # /analytics/getActiveReservations
-  #   get:
-  #     tags:
+  /analytics/assigned-valets:
+    get:
+      tags:
+        - analytics
+      summary: Retrieve the number of valets assigned to park in a parking lot
+      description: Returns the number of valets assigned to park in a parking lot. Only accessible by admins. 
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XClientType"
+        - in: query
+          name: lotId
+          description: The ID of the parking lot
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Successfully retrieved the number of valets assigned to park in a parking lot.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  lotId:
+                    type: string
+                    format: uuid
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+                  assignedValets:
+                    type: integer
+                    example: 5
+        "403":
+          description: Access denied. Only admins can access this resource.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Access denied. Only admins can access this resource."
+        "401":
+          description: Unauthorized access due to missing or invalid authentication.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unauthorized: No authorization header provided."
+        "404":
+          description: Parking lot not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Parking lot not found."
+        "500":
+          description: Internal server error while retrieving the number of valets assigned to park in a parking lot.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Error retrieving the number of valets assigned to park in a parking lot."
+                  error:
+                    type: string
+                    example: "Database connection failed."
 
 components:
   securitySchemes:
@@ -2182,8 +2362,19 @@ components:
     ProviderRegisterRequest:
       type: object
       properties:
-        employee: 
-          $ref: "#/components/schemas/Employee"
+        employee:
+          type: object
+          properties:
+             name: 
+                type: string
+             phone:  
+               type: string
+               example: 0912445578
+             email:
+               type: string
+             password:
+               type: string
+               format: password
         provider:
           $ref: "#/components/schemas/Provider"
     ProviderRegisterResponse:

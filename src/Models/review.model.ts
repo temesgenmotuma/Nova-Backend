@@ -1,7 +1,7 @@
 import db from "../Db/db";
 
 const reviewModel = {
-  async createReview(customerId: string, lotId: string, rating: number, comment?: string) {
+  async createReview(customerId: string, lotId: string, rating: any, comment?: string) {
     return await db.review.create({
       data: {
         customerId,

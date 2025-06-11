@@ -3,6 +3,7 @@ import upload from "../Middleware/upload";
 
 import {
   createLot,
+  getLotById,
   getNearbylots,
   getSpotsByLot,
   getLotsOfCurrProvider,
@@ -23,7 +24,7 @@ const router = express.Router();
 
 router.get("/", protect(["provider"]), getLotsOfCurrProvider);
 router.post("/", protect(["provider"]), upload.array('images'), createLot);
-router.patch("/:lotId", protect(["provider"]), upload.array('images'), updateLot);
+
 router.get("/nearby", protect(["customer"]), getNearbylots)
 router.get('/search', protect(["customer"]), searchLots);
 
@@ -36,5 +37,8 @@ router.post("/:lotId/favorite", protect(["customer"]), favoriteLot);
 router.delete("/:lotId/favorite", protect(["customer"]), unfavoriteLot);
 router.get("/favorites", protect(["customer"]), getFavoriteLots);
 router.get("/:lotId/favorite", protect(["customer"]), isLotFavorited);
+
+router.get("/:lotId", protect(["provider", "customer"]), getLotById)
+router.patch("/:lotId", protect(["provider"]), upload.array('images'), updateLot);
 
 export default router;

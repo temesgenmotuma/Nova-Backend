@@ -5,6 +5,7 @@ import supabase from "../services/supabase/supabase";
 import employeeModel from "../Models/employee.model";
 import createAuthUser from "../services/supabase/auth/signUp";
 import authSignin from "../services/supabase/auth/signIn";
+import  supaUpdatePassword  from "../services/supabase/auth/updatePassword";
 import sendEmail from "../services/email/sendEmail";
 import sendResetPasswordEmail from "../services/supabase/auth/resetPassord";
 import ModelError from "../Models/ModelError";
@@ -14,7 +15,7 @@ const employeeSchema = joi.object({
   name: joi.string().required(),
   password: joi.string().required().min(8),
   phone: joi.string().pattern(/^09\d{8}$/).required(),
-  role: joi.string().valid("admin", "valet").optional(),
+  // role: joi.string().valid("admin", "valet").optional(),
 });
 const providerSchema = joi.object({
   phone: joi.string().pattern(/^09\d{8}$/).required(),
@@ -61,6 +62,11 @@ const resetPasswordSchema = joi.object({
   email: joi.string().email().required(),
   // password: joi.string().min(8).required(),
 })
+
+const updatePasswordSchema = joi.object({
+  password: joi.string().min(8).required(),
+  confirmPassword: joi.ref("password"),
+});
 
 interface createProviderInterface {
   employee: Employee;
@@ -298,9 +304,32 @@ export const sendResetEmail = async(req: Request, res: Response) => {
     const { data, error } = await sendResetPasswordEmail(email);
     if (error) throw error;
 
-    res.json({ message: "Reset email sent."});
+    res.json({ message: "If an account with that email exists, a password reset link has been sent"});
   } catch (error) {
     console.error(error);
     res.status(500).json(error);
+  }
+}
+
+export const updatePassword = async (req: Request, res: Response) => {
+  const { error, value } = updatePasswordSchema.validate(req.body);
+
+  if (error) {
+    res.status(400).json({ error: error.details[0].message });
+    return;
+  }
+
+  try {
+    const user = await employeeModel.getEmployeeByEmail(req.user?.email!);
+    if (!user) {
+      res.status(404).json({ message: "User not found." });
+      return;
+    }
+
+    await supaUpdatePassword(value.password);
+    res.json({ message: "Password updated successfully." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error updating password.", error });
   }
 }
