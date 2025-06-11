@@ -99,10 +99,11 @@ export const getPrice = async (req: Request, res: Response) => {
     const validationResult = pricingQuerySchema.safeParse(req.query);
 
     if (!validationResult.success) {
-        return res.status(400).json({
+        res.status(400).json({
             error: 'Invalid query parameters',
             details: validationResult.error.errors,
         });
+        return;
     }
 
     const { lotId, startTime, endTime } = validationResult.data;
