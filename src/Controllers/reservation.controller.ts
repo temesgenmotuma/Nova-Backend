@@ -76,8 +76,8 @@ export const reserve = async (req: Request, res: Response) => {
       
       //lock the spot
       //wait until the user makes a payment.
-      const reservation = await reservationModel.reserve(freeSpot.id, result.data, lotId)
-      res.status(201).json(reservation);
+      // const reservation = await reservationModel.reserve(freeSpot.id, result.data, lotId)
+      // res.status(201).json(reservation);
       
     } catch (error) {
       if(error instanceof ModelError){

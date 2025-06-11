@@ -1,5 +1,8 @@
+import { PrismaClient } from '@prisma/client';
 
-export interface ICostConfig {
+const prisma = new PrismaClient();
+
+export interface CostConfig {
     /** Total cost for a calendar month (Cₘ) */
     totalMonthlyCost: number;
     /** Target profit margin (M), a value between 0 and 1 */
@@ -16,28 +19,28 @@ export interface ICostConfig {
  * Provides capacity and occupancy data.
  * Implementations can fetch from a database, an API, or in-memory stores.
  */
-export interface ICapacityProvider {
+export interface CapacityProvider {
     /** Total capacity of the lot (Tᴄ) */
-    getTotalCapacity(): number;
+    getTotalCapacity(): Promise<number>;
     /** Number of days in the current month (D) */
-    getDaysInMonth(): number;
+    getDaysInMonth(): Promise<number>;
     /**
      * Historical availability array (Hᴬₕ), length = 24.
      * Hᴬₕ[h] = number of available spots at historical hour h (0 ≤ h ≤ 23).
      */
-    getHistoricalAvailability(): number[];
+    getHistoricalAvailability(): Promise<number[]>;
     /**
      * Current availability array (Cᴬₕ), length = 24.
      * Cᴬₕ[h] = number of currently available spots for future hour h (0 ≤ h ≤ 23),
      * relative to “hour 0” being the current hour.
      */
-    getCurrentAvailability(): number[];
+    getCurrentAvailability(): Promise<number[]>;
 }
 
 /**
  * Tunable parameters for the dynamic pricing algorithm.
  */
-export interface IParameterConfig {
+export interface ParameterConfig {
     /**
      * Minimum relative‐occupancy factor (Oₘᵢₙ).
      * Used to clamp Oₕ so that we don’t over‐inflate the multiplier when Hₕ ≫ H_avg.
@@ -65,13 +68,135 @@ export interface IParameterConfig {
     weight: number;
 }
 
+export class ConstParameterConfig implements ParameterConfig {
+    readonly occupancyClampMin: number = 0.5;
+    readonly occupancyClampMax: number = 1.5;
+    readonly alpha: number = 0.2;
+    readonly beta: number = 0.1;
+    readonly weight: number = 0.5;
+}
+
+export class PrismaCapacityProvider implements CapacityProvider {
+    private readonly lotId: string;
+
+    constructor(lotId: string) {
+        this.lotId = lotId;
+    }
+
+    async getTotalCapacity(): Promise<number> {
+        const lot = await prisma.lot.findUnique({
+            where: { id: this.lotId },
+            select: { capacity: true },
+        });
+        if (!lot) {
+            throw new Error(`Lot with ID ${this.lotId} not found.`);
+        }
+        return lot.capacity;
+    }
+
+    async getDaysInMonth(): Promise<number> {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    }
+
+    async getHistoricalAvailability(): Promise<number[]> {
+        const spots = await prisma.spot.findMany({
+            where: {
+                zone: { lotId: this.lotId },
+            },
+            select: { id: true },
+        });
+
+        const spotIds = spots.map(spot => spot.id);
+
+        // Simulate historical availability (e.g., average availability per hour)
+        const historicalData = await prisma.$queryRaw<{ hour: number; avg_availability: number }[]>`
+            SELECT hour, AVG(available_spots) AS avg_availability
+            FROM (
+                SELECT
+                    EXTRACT(HOUR FROM "createdAt") AS hour,
+                    COUNT(*) FILTER (WHERE status = 'Available') AS available_spots
+                FROM "Spot"
+                WHERE id = ANY(${spotIds})
+                GROUP BY EXTRACT(HOUR FROM "createdAt")
+            ) subquery
+            GROUP BY hour
+            ORDER BY hour;
+        `;
+
+        const availability = new Array(24).fill(0);
+        historicalData.forEach((row: { hour: number; avg_availability: number }) => {
+            availability[row.hour] = row.avg_availability;
+        });
+
+        return availability;
+    }
+
+    async getCurrentAvailability(): Promise<number[]> {
+        const spots = await prisma.spot.findMany({
+            where: { zone: { lotId: this.lotId } },
+            select: { id: true, status: true },
+        });
+
+        const availability = new Array(24).fill(0);
+        spots.forEach(spot => {
+            if (spot.status === 'Available') {
+                availability[0]++; // Assume current availability is for hour 0
+            }
+        });
+
+        return availability;
+    }
+}
+
+export class DatabaseCostConfigProvider {
+    private readonly lotId: string;
+
+    constructor(lotId: string) {
+        this.lotId = lotId;
+    }
+
+    async getCostConfig(): Promise<CostConfig> {
+        const pricing = await prisma.pricing.findUnique({
+            where: { lotId: this.lotId },
+            select: { maxPrice: true, minPrice: true, valetPrice: true },
+        });
+
+        if (!pricing) {
+            throw new Error(`Pricing configuration for lot ID ${this.lotId} not found.`);
+        }
+
+        const today = new Date();
+        const cost = await prisma.cost.findFirst({
+            where: {
+                lotId: this.lotId,
+                year: today.getFullYear(),
+                month: today.getMonth() + 1,
+            },
+            select: { amount: true, margin: true },
+        });
+
+        if (!cost) {
+            throw new Error(`Cost configuration for lot ID ${this.lotId} not found.`);
+        }
+
+        return {
+            totalMonthlyCost: Number(cost.amount),
+            targetProfitMargin: Number(cost.margin),
+            minPrice: Number(pricing.minPrice),
+            maxPrice: Number(pricing.maxPrice),
+            valetPrice: Number(pricing.valetPrice),
+        };
+    }
+}
+
 /**
  * Main engine that computes dynamic prices per hour and total booking price.
  */
 export class DynamicPricingEngine {
-    private costConfig: ICostConfig;
-    private capacityProvider: ICapacityProvider;
-    private params: IParameterConfig;
+    private readonly costConfig: CostConfig;
+    private readonly capacityProvider: CapacityProvider;
+    private readonly params: ParameterConfig;
 
     /**
      * Number of hours in a day; used for array lengths.
@@ -79,9 +204,9 @@ export class DynamicPricingEngine {
     private static readonly HOURS_IN_DAY = 24;
 
     constructor(
-        costConfig: ICostConfig,
-        capacityProvider: ICapacityProvider,
-        params: IParameterConfig
+        costConfig: CostConfig,
+        capacityProvider: CapacityProvider,
+        params: ParameterConfig
     ) {
         this.costConfig = costConfig;
         this.capacityProvider = capacityProvider;
@@ -92,13 +217,13 @@ export class DynamicPricingEngine {
      * Computes the array of hourly prices (Pₕ) for the next 24 hours.
      * Returns an array ‘prices’ of length 24, where prices[h] is Pₕ for hour h (0 ≤ h ≤ 23).
      */
-    public computeHourlyPrices(): number[] {
+    public async computeHourlyPrices(): Promise<number[]> {
         const { totalMonthlyCost: C_m, targetProfitMargin: M, minPrice: P_min, maxPrice: P_max } =
             this.costConfig;
-        const TC = this.capacityProvider.getTotalCapacity();
-        const D = this.capacityProvider.getDaysInMonth();
-        const historicalAvail = this.capacityProvider.getHistoricalAvailability();
-        const currentAvail = this.capacityProvider.getCurrentAvailability();
+        const TC = await this.capacityProvider.getTotalCapacity();
+        const D = await this.capacityProvider.getDaysInMonth();
+        const historicalAvail = await this.capacityProvider.getHistoricalAvailability();
+        const currentAvail = await this.capacityProvider.getCurrentAvailability();
         const { occupancyClampMin: O_min, occupancyClampMax: O_max, alpha, beta, weight: w } =
             this.params;
 
@@ -196,11 +321,10 @@ export class DynamicPricingEngine {
      *
      * @throws Error if indices are invalid or endHour ≤ startHour.
      */
-    public computeTotalPrice(
+    public async computeParkingAndValetPrices(
         startHour: number,
         endHour: number,
-        valetRequested: boolean
-    ): number {
+    ){
         if (
             startHour < 0 ||
             endHour > DynamicPricingEngine.HOURS_IN_DAY ||
@@ -209,18 +333,19 @@ export class DynamicPricingEngine {
             throw new Error("Invalid startHour/endHour. Must satisfy 0 ≤ start < end ≤ 24.");
         }
 
-        const hourlyPrices = this.computeHourlyPrices();
-        let total = 0;
+        const hourlyPrices = await this.computeHourlyPrices();
+        let subtotal = 0;
         // Sum prices for hours h ∈ {startHour, startHour+1, …, endHour - 1}
         for (let h = startHour; h < endHour; h++) {
-            total += hourlyPrices[h];
+            subtotal += hourlyPrices[h];
         }
 
-        // Add valet fee if requested
-        if (valetRequested) {
-            total += this.costConfig.valetPrice;
-        }
+        const fixedValetPrice = this.costConfig.valetPrice;
 
-        return total;
+        return {
+            subtotalParkingPrice: subtotal,
+            fixedValetPrice: fixedValetPrice
+        };
     }
 }
+

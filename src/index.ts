@@ -22,6 +22,8 @@ import valetRoutes from "./Routes/valet";
 import alertRoutes from "./Routes/alert";
 import reviewRoutes from "./Routes/review";
 import analyticsRoutes from "./Routes/analytics";
+import costRoutes from "./Routes/cost";
+import priceRoutes from "./Routes/price";
 
 import swaggerUi from "swagger-ui-express";
 const swaggerDocument = yaml.parse(
@@ -51,6 +53,8 @@ app.use("/v1/valet", valetRoutes);
 app.use("/v1/alerts", alertRoutes);
 app.use("/v1/reviews", reviewRoutes);
 app.use("/v1/analytics", analyticsRoutes);
+app.use('/v1/cost', costRoutes);
+app.use('/v1/price', priceRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
