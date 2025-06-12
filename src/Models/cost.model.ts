@@ -25,10 +25,11 @@ const costModel = {
         }
     },
 
-    async getCostsByYear(year: number | undefined, limit: number, offset: number) {
+    async getCostsByYear(year: number | undefined, limit: number, offset: number, lotId?: string) {
         try {
             const whereFilter: Prisma.CostWhereInput = {
                 year,
+                ...(lotId ? { lotId } : {}),
             };
 
             const costs = await db.cost.findMany({
