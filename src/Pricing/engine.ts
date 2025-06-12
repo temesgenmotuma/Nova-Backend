@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -107,27 +107,31 @@ export class PrismaCapacityProvider implements CapacityProvider {
             select: { id: true },
         });
 
-        const spotIds = spots.map(spot => spot.id);
+        const spotIds = spots.map((spot) => spot.id);
 
         // Simulate historical availability (e.g., average availability per hour)
-        const historicalData = await prisma.$queryRaw<{ hour: number; avg_availability: number }[]>`
+        const historicalData = await prisma.$queryRaw<
+            { hour: number; avg_availability: number }[]
+        >`
             SELECT hour, AVG(available_spots) AS avg_availability
             FROM (
-                SELECT
-                    EXTRACT(HOUR FROM "createdAt") AS hour,
-                    COUNT(*) FILTER (WHERE status = 'Available') AS available_spots
-                FROM "Spot"
-                WHERE id = ANY(${spotIds})
-                GROUP BY EXTRACT(HOUR FROM "createdAt")
-            ) subquery
+                     SELECT
+                         EXTRACT(HOUR FROM "createdAt") AS hour,
+                         COUNT(*) FILTER (WHERE status = 'Available') AS available_spots
+                     FROM "Spot"
+                     WHERE id = ANY(${spotIds})
+                     GROUP BY EXTRACT(HOUR FROM "createdAt")
+                 ) subquery
             GROUP BY hour
             ORDER BY hour;
         `;
 
         const availability = new Array(24).fill(0);
-        historicalData.forEach((row: { hour: number; avg_availability: number }) => {
-            availability[row.hour] = row.avg_availability;
-        });
+        historicalData.forEach(
+            (row: { hour: number; avg_availability: number }) => {
+                availability[row.hour] = row.avg_availability;
+            },
+        );
 
         return availability;
     }
@@ -139,8 +143,8 @@ export class PrismaCapacityProvider implements CapacityProvider {
         });
 
         const availability = new Array(24).fill(0);
-        spots.forEach(spot => {
-            if (spot.status === 'Available') {
+        spots.forEach((spot) => {
+            if (spot.status === "Available") {
                 availability[0]++; // Assume current availability is for hour 0
             }
         });
@@ -163,7 +167,9 @@ export class DatabaseCostConfigProvider {
         });
 
         if (!pricing) {
-            throw new Error(`Pricing configuration for lot ID ${this.lotId} not found.`);
+            throw new Error(
+                `Pricing configuration for lot ID ${this.lotId} not found.`,
+            );
         }
 
         const today = new Date();
@@ -206,7 +212,7 @@ export class DynamicPricingEngine {
     constructor(
         costConfig: CostConfig,
         capacityProvider: CapacityProvider,
-        params: ParameterConfig
+        params: ParameterConfig,
     ) {
         this.costConfig = costConfig;
         this.capacityProvider = capacityProvider;
@@ -218,14 +224,24 @@ export class DynamicPricingEngine {
      * Returns an array ‘prices’ of length 24, where prices[h] is Pₕ for hour h (0 ≤ h ≤ 23).
      */
     public async computeHourlyPrices(): Promise<number[]> {
-        const { totalMonthlyCost: C_m, targetProfitMargin: M, minPrice: P_min, maxPrice: P_max } =
-            this.costConfig;
+        const {
+            totalMonthlyCost: C_m,
+            targetProfitMargin: M,
+            minPrice: P_min,
+            maxPrice: P_max,
+        } = this.costConfig;
         const TC = await this.capacityProvider.getTotalCapacity();
         const D = await this.capacityProvider.getDaysInMonth();
-        const historicalAvail = await this.capacityProvider.getHistoricalAvailability();
+        const historicalAvail =
+            await this.capacityProvider.getHistoricalAvailability();
         const currentAvail = await this.capacityProvider.getCurrentAvailability();
-        const { occupancyClampMin: O_min, occupancyClampMax: O_max, alpha, beta, weight: w } =
-            this.params;
+        const {
+            occupancyClampMin: O_min,
+            occupancyClampMax: O_max,
+            alpha,
+            beta,
+            weight: w,
+        } = this.params;
 
         // 1) Compute historical occupancy ratio Hₕ = (TC - Hᴬₕ) / TC for each hour h
         //    H_h ∈ [0, 1]. If Hᴬₕ = 0 (full occupancy historically), Hₕ = 1.
@@ -324,13 +340,15 @@ export class DynamicPricingEngine {
     public async computeParkingAndValetPrices(
         startHour: number,
         endHour: number,
-    ){
+    ) {
         if (
             startHour < 0 ||
             endHour > DynamicPricingEngine.HOURS_IN_DAY ||
             startHour >= endHour
         ) {
-            throw new Error("Invalid startHour/endHour. Must satisfy 0 ≤ start < end ≤ 24.");
+            throw new Error(
+                "Invalid startHour/endHour. Must satisfy 0 ≤ start < end ≤ 24.",
+            );
         }
 
         const hourlyPrices = await this.computeHourlyPrices();
@@ -344,8 +362,39 @@ export class DynamicPricingEngine {
 
         return {
             subtotalParkingPrice: subtotal,
-            fixedValetPrice: fixedValetPrice
+            fixedValetPrice: fixedValetPrice,
         };
     }
-}
 
+    public async computeTotalPrice(
+        startHour: number,
+
+        endHour: number,
+
+        valetRequested: boolean,
+    ): Promise<number> {
+        if (
+            startHour < 0 ||
+            endHour > DynamicPricingEngine.HOURS_IN_DAY ||
+            startHour >= endHour
+        ) {
+            throw new Error(
+                "Invalid startHour/endHour. Must satisfy 0 ≤ start < end ≤ 24.",
+            );
+        }
+
+        const hourlyPrices = await this.computeHourlyPrices();
+
+        let total = 0; // Sum prices for hours h ∈ {startHour, startHour+1, …, endHour - 1}
+
+        for (let h = startHour; h < endHour; h++) {
+            total += hourlyPrices[h];
+        } // Add valet fee if requested
+
+        if (valetRequested) {
+            total += this.costConfig.valetPrice;
+        }
+
+        return total;
+    }
+}
