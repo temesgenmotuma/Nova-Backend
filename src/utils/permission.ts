@@ -1,22 +1,22 @@
-import { custom } from "joi";
-
-export type User = {
-  roles: Role[];
-  id: string;
-  providerId: string;
-  lotId: string;
-  email: string;
-} | {
-  roles: Role[];
-};
+export type User =
+  | {
+      roles: Role[];
+      id: string;
+      providerId: string;
+      lotId: string;
+      email: string;
+    }
+  | {
+      roles: Role[];
+    };
 
 export type genericUser =
-    {
+  | {
       id?: number;
       email?: string;
       role?: Role;
-    } |
-    {
+    }
+  | {
       id?: string;
       providerId?: string;
       lotId?: string;
@@ -24,8 +24,8 @@ export type genericUser =
       email?: string;
     };
 
-export type Role = keyof typeof ROLES
-type Permission = (typeof ROLES)[Role][number]
+export type Role = keyof typeof ROLES;
+type Permission = typeof ROLES[Role][number];
 
 const ROLES = {
   admin: [
@@ -37,19 +37,20 @@ const ROLES = {
     "update:lot",
     "view:lots",
   ],
-  valet: ["view:comments", "create:comments"],
-  attendant: [],
-  customer : [
-    "view:lots",
+  valet: [
     "view:comments",
     "create:comments",
-  ]
-} as const
+    "create:valetTicket",
+    "view:valetTicket",
+  ],
+  attendant: [],
+  customer: ["view:lots", "view:comments", "create:comments"],
+} as const;
 
 export function hasPermission(user: genericUser, permission: Permission) {
   const role = user.role;
   if (!role || !ROLES[role]) {
-    return false; 
+    return false;
   }
   return (ROLES[role] as readonly Permission[])?.includes(permission);
 }

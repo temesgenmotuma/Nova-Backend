@@ -4,6 +4,7 @@ import { z } from "zod";
 import valetModel from "../Models/valet.model";
 import sendEmail from "../services/email/sendEmail";
 import ModelError from "../Models/ModelError";
+import { hasPermission } from "../utils/permission";
 
 const createValetTicketSchema = z.object({
   vehicle: z.object({
@@ -12,11 +13,10 @@ const createValetTicketSchema = z.object({
     model: z.string().optional(),
     color: z.string().optional(),
   }),
+  //TODO: make this optional or remove it since no email noti
   customer: z.object({
     email: z.string(),
   }),
-  //TODO: This field will be deleted and come from the auth user
-  lotId: z.string().uuid().optional(),
   zoneId: z.string().uuid(),
 });
 
@@ -29,10 +29,9 @@ export type vehicleType = z.infer<typeof createValetTicketSchema>["vehicle"];
 export type customerType = z.infer<typeof createValetTicketSchema>["customer"];
 
 export const createValetTicket = async (req: Request, res: Response) => {
-  const { id: valetId, role, lotId: defaultLotid } = req.user!;
+  const { id: valetId, role, lotId } = req.user!;
   
-  //TODO: Maybe removed when permissions are implemented
-  if (role !== "Valet") {
+  if (!hasPermission(req.user!, "create:valetTicket")) {
     res.status(403).json({ message: "Only valets can create valetTickets." });
     return;
   }
@@ -42,9 +41,7 @@ export const createValetTicket = async (req: Request, res: Response) => {
     return;
   }
 
-  const lotId = defaultLotid || parsedBody.data.lotId;
   const zoneId = parsedBody.data.zoneId;
-  //TODO: Handle lotId value with diffrent roles.
   if (!valetId || !lotId) {
     res.status(401).json({ message: "Unauthorized- forbidden to create valet ticket" });
     return;
@@ -53,11 +50,11 @@ export const createValetTicket = async (req: Request, res: Response) => {
     const { vehicle, customer } = parsedBody.data;
     const valetParking = await valetModel.createValetTicket(valetId, lotId, zoneId, vehicle, customer);
     const vehicleId = valetParking.ticket.vehicle.id;
-    await sendEmail(
-      customer.email,
-      "Valet Ticket Created",
-      `Here is the link: http:localhost:3000/vehicles?id=${vehicleId}`
-    );
+    // await sendEmail(
+    //   customer.email,
+    //   "Valet Ticket Created",
+    //   `Here is the link: http:localhost:3000/vehicles?id=${vehicleId}`
+    // );
     //http:localhost:3000/ticket?id=ticketId
     
     res.status(201).json({ message: "Confirmation email sent.", valetParking });
@@ -75,7 +72,7 @@ export const createValetTicket = async (req: Request, res: Response) => {
 export const makeRetreivalRequest = async (req: Request, res: Response) => {
   const ticketBody = ticketIdSchema.safeParse(req.params);
   if (!ticketBody.success) {
-    res.status(400).json({ message: ticketBody.error.errors });
+    res.status(400).json({ message: ticketBody.error });
     return;
   }
   const {ticketId} = ticketBody.data;
@@ -97,8 +94,8 @@ export const makeRetreivalRequest = async (req: Request, res: Response) => {
 
 export const getRetrievalRequests = async (req: Request, res: Response) => {
   const { id: valetId, role, lotId } = req.user!;
-  if (role !== "Valet" || !lotId) {
-    res.status(403).json({ message: "Forbidden" });
+  if (!hasPermission(req.user!, "view:valetTicket") || !lotId) {
+    res.status(403).json({ message: "The user is not a valet." });
     return;
   }
   try {
@@ -148,7 +145,6 @@ export const completeRetrievalRequest = async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({
-      message: "Internal server error",
       error: (error as Error).message,
     });
   }

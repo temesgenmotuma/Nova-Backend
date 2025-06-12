@@ -96,7 +96,7 @@ export const createLot = async (req: Request, res: Response) => {
   const providerId = req.user?.providerId!;
   const value = createLotSchema.safeParse(req.body);
   if (!value.success) {
-    res.status(400).json({ error: value.error.errors });
+    res.status(400).json({ error: value.error });
     return;
   }
 

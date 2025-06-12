@@ -24,6 +24,7 @@ const valetModel = {
         endTime: {
           gt: new Date(), //endTime is not past 
         },
+        requestedValet: true
       },
       include: {
         spot: true,
@@ -164,30 +165,32 @@ const valetModel = {
         },
       },
     });
+
     return activeRequests;
   },
 
   async claimRetrievalRequest(ticketId: string, valetId: string) {
-     await db.$transaction(async (tx) =>{
-      
+    return await db.$transaction(async (tx) => {
       await db.$queryRaw`SELECT * FROM "ValetTicket" WHERE id = ${ticketId} FOR UPDATE`;
+
       const ticket = await tx.valetTicket.findUnique({
         where: {
           id: ticketId,
-        }
+        },
       });
 
       if (!ticket) {
         throw new ModelError("Ticket not found", 404);
       }
-      
-      await db.valetTicket.update({
+
+      return await db.valetTicket.update({
         where: {
           id: ticketId,
-          status: "IN_PROGRESS",
+          status: "VEHICLEREQUESTED",
         },
         data: {
           claimedBy: valetId,
+          status: "IN_PROGRESS",
         },
       });
     });
@@ -197,6 +200,9 @@ const valetModel = {
     const ticket = await db.valetTicket.findUnique({
       where: {
         id: ticketId,
+        claimedBy: {
+          not: null,
+        },
       },
       include: {
         vehicle: true,
@@ -229,7 +235,7 @@ const valetModel = {
         },
         data: {
           status: "Available",
-          occupationType: "NONRESERVATION",
+          occupationType: null,
         },
       });
     });
