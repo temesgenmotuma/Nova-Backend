@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import pricingModel from 'Models/price.model';
+import pricingModel from '../Models/price.model';
 import {
     PrismaCapacityProvider,
     ConstParameterConfig,
