@@ -112,7 +112,7 @@ const reservationModel = {
       }
       });
 
-    if(!lot) {
+    if(!lot || !lot.hasValet) {
       reservation.requestedValet = false;
     }
 
@@ -136,7 +136,7 @@ const reservationModel = {
         throw new ModelError("Vehicle not found", 404);
       }
 
-      return await tx.spot.update({
+      return tx.spot.update({
         where: {
           id: spotId,
         },

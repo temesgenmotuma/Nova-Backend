@@ -14,7 +14,7 @@ model Customer {
   username   String?
   email      String                                @unique
   // password String
-  location   Unsupported("geometry(Point, 4326)")? //if cutomer doesn't give location permission
+  location   Unsupported("geometry(Point, 4326)")? // if cutomer doesn't give location permission
   supabaseId String                                @unique
 
   vehicles     Vehicle[]
@@ -28,7 +28,7 @@ model Provider {
   id       String   @id @default(uuid())
   name     String   @unique
   email    String?  @unique
-  phone    String //may not be needed.
+  phone    String // may not be needed.
   hasValet Boolean?
 
   supabaseId String @unique
@@ -72,7 +72,7 @@ model Invitation {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  //might remove later
+  // might remove later
   lotId String?
   lot   Lot?    @relation(fields: [lotId], references: [id])
 
@@ -96,11 +96,13 @@ model Lot {
   provider   Provider @relation(fields: [providerId], references: [id])
 
   // spots       Spot[]
-  zones       Zone[]
-  invitations Invitation[]
-  employees   Employee[]
-  review      Review[]
-  favoriteLots FavoriteLot[] // Added relation field
+  zones        Zone[]
+  invitations  Invitation[]
+  employees    Employee[]
+  review       Review[]
+  favoriteLots FavoriteLot[]
+  costs        Cost[]
+  pricing      Pricing?
 
   @@index([location], name: "location_idx", type: Gist)
 }
@@ -126,7 +128,7 @@ model Spot {
   floor          Int
   price          Decimal?
   status         SpotStatus      @default(Available)
-  occupationType OccupationType? //if free = null
+  occupationType OccupationType? // if free = null
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -232,6 +234,28 @@ model ProviderSetting {
   provider   Provider @relation(fields: [providerId], references: [id])
 }
 
+model Cost {
+  id     String  @id @default(uuid())
+  month  Int
+  year   Int
+  amount Decimal
+  margin Decimal
+
+  lotId String @default(uuid())
+  lot   Lot    @relation(fields: [lotId], references: [id])
+}
+
+model Pricing {
+  id String @id @default(uuid())
+
+  maxPrice   Decimal
+  minPrice   Decimal
+  valetPrice Decimal
+
+  lotId String @unique
+  lot   Lot    @relation(fields: [lotId], references: [id])
+}
+
 model ProviderDefaultSetting {
   id        String   @id @default(uuid())
   name      String
@@ -263,7 +287,7 @@ model ValetTicket {
   spot   Spot?   @relation(fields: [spotId], references: [id])
 }
 
-//cancelled not used yet
+// cancelled not used yet
 enum ValetTicketStatus {
   ISSUED
   VEHICLEREQUESTED
