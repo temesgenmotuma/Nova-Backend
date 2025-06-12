@@ -186,7 +186,7 @@ const lotModel = {
         SELECT 
           l.id,
           l.name, 
-          -- l.price, 
+          p."minPrice" AS price, 
           ST_X(l.location) AS longitude, 
           ST_Y(l.location) AS latitude,
           ST_Distance(l.location, ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326)::geography) as distance,
@@ -197,8 +197,11 @@ const lotModel = {
           COUNT(*) OVER()::integer AS total_count,
           AVG(r.rating) AS average_rating
         FROM 
-          "Lot" l LEFT JOIN 
+          "Lot" l 
+        LEFT JOIN 
           "Review" r ON l.id = r."lotId" 
+        LEFT JOIN
+          "Pricing" p ON l.id = p."lotId"
         WHERE 
           ST_DWithin(
             l.location,
@@ -206,7 +209,7 @@ const lotModel = {
             ${radius}
           )
         GROUP BY
-          l.id, l.name, l.location, l.description, l."hasValet", l.images
+          l.id, l.name, l.location, l.description, l."hasValet", l.images, p."minPrice", l.address
         ORDER BY 
           ST_Distance(l.location, ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326)::geography)
         ;
@@ -217,9 +220,9 @@ const lotModel = {
         SELECT 
           l.id,
           l.name, 
-          -- l.price, 
+          p."minPrice" AS price, 
           ST_X(l.location) AS longitude, 
-          ST_Y(l.location) AS latitude,, 
+          ST_Y(l.location) AS latitude,
           l.description, 
           l."hasValet", 
           l.images,
@@ -229,12 +232,16 @@ const lotModel = {
         FROM 
           "Lot" l LEFT JOIN 
           "Review" r ON l.id = r."lotId" 
+          LEFT JOIN
+          "Pricing" p ON l.id = p."lotId"
         WHERE 
           ST_DWithin(
             l.location,
             ST_SetSRID(ST_MAKEPOINT(${longitude}, ${latitude}), 4326)::geography,
             ${radius}
           ) 
+        GROUP BY
+          l.id, l.name, l.location, l.description, l."hasValet", l.images, p."minPrice", l.address
         ORDER BY 
           l.price;
     `;
@@ -283,6 +290,7 @@ const lotModel = {
         ...((!!lot.distance || lot.distance === 0) && {
           distance: lot.distance,
         }),
+        price: lot.price,
         description: lot.description,
         hasValet: lot.hasValet,
         images: lot.images || [],

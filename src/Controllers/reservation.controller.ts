@@ -220,6 +220,20 @@ export const reserve = async (req: Request, res: Response) => {
     }
   }
 
+  export const getActiveReservations = async (req: Request, res: Response) => {
+    const customerId = req?.user?.id as string;
+    try {
+      const reservations = await reservationModel.getActiveReservations(customerId);
+      res.json(reservations);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        message: "Error fetching active reservations.",
+        error: (error as Error).message,
+      });
+    }
+  };
+
   export const getReservationsHistory = async (req: Request, res: Response) => {
     const customerId = req?.user?.id as string;
     const result = reservationHistoryQuerySchema.safeParse(req.query);

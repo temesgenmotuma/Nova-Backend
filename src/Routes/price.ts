@@ -4,8 +4,8 @@ import {getLotPricing, getPrice, upsertLotPricing} from "../Controllers/price.co
 
 const router = express.Router();
 
-router.put('/:lotId', protect(["admin"]), upsertLotPricing);
-router.get('/:lotId', protect(["admin"]), getLotPricing);
-router.get('/calculate', getPrice);
+router.put('/:lotId', protect(["provider"]), upsertLotPricing);
+router.get('/:lotId', protect(["provider", "customer"]), getLotPricing);
+router.get('/calculate', protect(["customer"]), getPrice);
 
 export default router;
