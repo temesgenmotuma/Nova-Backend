@@ -6,7 +6,6 @@ import {uuid} from "./zone.controller";
 import jwt from "jsonwebtoken";
 import axios from "axios";
 import {getPriceForLot} from "./price.controller";
-import price from "../Routes/price";
 
 const reserveQuerySchema = z.object({
     vehicleId: z.string().uuid(),
@@ -94,7 +93,7 @@ async function getSantimRedirectURL(amount: number,phoneNumber: string) {
     try {
         const response = await axios.post("https://services.santimpay.com/api/v1/gateway/initiate-payment", payload);
         if (response.status === 200) {
-            return response.data.url;
+            return response.data.url as string;
         } else {
             throw new Error("Failed to initiate payment");
         }
@@ -134,13 +133,11 @@ export const reserve = async (req: Request, res: Response) => {
           requestedValet,
       );
 
-      await getSantimRedirectURL(priceInfo.total, phoneNumber);
-      
-      //lock the spot
-      //wait until the user makes a payment.
-      // const reservation = await reservationModel.reserve(freeSpot.id, result.data, lotId)
-      // res.status(201).json(reservation);
-      
+      const url = await getSantimRedirectURL(priceInfo.total, phoneNumber);
+      res.json({url});
+
+      // TODO: accept notify URL or check after 30 seconds
+      // const reservation = await reservationModel(
     } catch (error) {
       if(error instanceof ModelError){
         res.status(error.statusCode).json({message: error.message});

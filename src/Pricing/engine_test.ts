@@ -502,14 +502,14 @@ async function testComputeHourlyPricesHighOccupancy() {
   const costConfig: CostConfig = {
     totalMonthlyCost: 10000,
     targetProfitMargin: 0.2,
-    minPrice: 1,
+    minPrice: 2,
     maxPrice: 10,
     valetPrice: 5,
   };
   const TC = 100;
   const D = 30;
-  const historicalAvail = new Array(24).fill(10); // High occupancy (10 available)
-  const currentAvail = new Array(24).fill(10);   // High occupancy (10 available)
+  const historicalAvail = new Array(24).fill(0.6); // High occupancy (10 available)
+  const currentAvail = new Array(24).fill(0.2);   // High occupancy (10 available)
 
   const capacityProvider = new MockCapacityProvider(TC, D, historicalAvail, currentAvail);
   const params = new ConstParameterConfig();
