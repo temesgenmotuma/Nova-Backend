@@ -82,12 +82,16 @@ export const getLotPricing = async (req: Request, res: Response) => {
 
 const pricingQuerySchema = z.object({
     lotId: z.string().uuid("Invalid lotId format. Must be a UUID."),
-    startTime: z.string().transform(Number).refine(val => !isNaN(val) && val >= 0 && val <= 23, {
-        message: "startTime must be a number between 0 and 23.",
-    }),
-    endTime: z.string().transform(Number).refine(val => !isNaN(val) && val >= 1 && val <= 24, {
-        message: "endTime must be a number between 1 and 24.",
-    }),
+    startTime: z.string().datetime({ message: "Invalid startTime format. Must be an ISO 8601 date string." })
+        .transform((str) => new Date(str).getHours()) // Convert to Date object, then get the hour (0-23)
+        .refine(val => val >= 0 && val <= 23, {
+            message: "startTime must represent an hour between 0 and 23.",
+        }),
+    endTime: z.string().datetime({ message: "Invalid endTime format. Must be an ISO 8601 date string." })
+        .transform((str) => new Date(str).getHours() === 0 ? 24 : new Date(str).getHours()) // Convert to Date object, then get the hour (1-24, where 00:00 becomes 24 for end of day)
+        .refine(val => val >= 1 && val <= 24, {
+            message: "endTime must represent an hour between 1 and 24.",
+        }),
     valetRequested: z.enum(['true', 'false']).transform(val => val === 'true'),
 }).refine(data => data.endTime > data.startTime, {
     message: "endTime must be greater than startTime.",
@@ -95,7 +99,6 @@ const pricingQuerySchema = z.object({
 });
 
 export const getPrice = async (req: Request, res: Response) => {
-    // 1. Validate query parameters using Zod
     const validationResult = pricingQuerySchema.safeParse(req.query);
 
     if (!validationResult.success) {
@@ -107,7 +110,19 @@ export const getPrice = async (req: Request, res: Response) => {
     }
 
     const { lotId, startTime, endTime } = validationResult.data;
-    const valetRequested = !!(await pricingModel.lotProvidesValet(lotId) && validationResult.data.valetRequested);
+
+    const priceInfo = await getPriceForLot(
+        lotId,
+        startTime,
+        endTime,
+        validationResult.data.valetRequested,
+    );
+
+    res.json(priceInfo);
+};
+
+export async function getPriceForLot(lotId: string, startTime: number, endTime: number, valetRequested: boolean){
+    valetRequested = !!(await pricingModel.lotProvidesValet(lotId) && valetRequested);
 
     const capacityProvider = new PrismaCapacityProvider(lotId);
     const costConfigProvider = new DatabaseCostConfigProvider(lotId);
@@ -133,10 +148,10 @@ export const getPrice = async (req: Request, res: Response) => {
         total += valet_price; // Add to total only if applied
     }
 
-    res.json({
+    return {
         min_price: parseFloat(min_price.toFixed(2)),
         subtotal_price: parseFloat(subtotal_price.toFixed(2)),
         valet_price: parseFloat(valet_price.toFixed(2)),
-        total: parseFloat(total.toFixed(2)),
-    });
-};
+        total: parseFloat(total.toFixed(2))
+    }
+}

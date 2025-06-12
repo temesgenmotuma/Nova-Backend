@@ -6,6 +6,6 @@ const router = express.Router();
 
 router.put('/:lotId', protect(["admin"]), upsertLotPricing);
 router.get('/:lotId', protect(["admin"]), getLotPricing);
-router.get('/calculate', protect(["admin"]), getPrice);
+router.get('/calculate', getPrice);
 
 export default router;
